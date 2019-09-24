@@ -1,4 +1,10 @@
 "use strict"
+var onlineFSM = onlineFSM || {};
+
+onlineFSM.core.registerApp(new onlineFSM.App(), function(app){
+
+});
+
 
 window.onload = function () {
     var workspace = new Workspace();
