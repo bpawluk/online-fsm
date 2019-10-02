@@ -1,11 +1,12 @@
-"use strict"
-var onlineFSM = onlineFSM || {};
+'use strict'
+import Core from '../common/core';
 
-onlineFSM.core.registerApp(new onlineFSM.App(), function(app){
+export function initializeDesigner(){
+    const core = new Core();
+}
 
-});
 
-
+// ------------------------
 window.onload = function () {
     var workspace = new Workspace();
     workspace.init(document.getElementById('canvas'));
