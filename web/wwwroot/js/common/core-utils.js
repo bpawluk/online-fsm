@@ -1,5 +1,5 @@
 'use strict'
-import * as utils from '../common/common-utils';
+import { ArrayUtils } from '../common/common-utils';
 
 class Interface {
     constructor(name, methods, properties) {
@@ -55,8 +55,9 @@ class Event {
         this._listeners.push(listener);
     }
 
+    //TO DO: Some way to actually unregister
     unregisterListener(listener) {
-        return utils.ArrayUtils.remove(listener, this._listeners)
+        return ArrayUtils.remove(listener, this._listeners)
     }
 
     clear() {
@@ -79,8 +80,10 @@ export class EventsManager {
     }
 
     create(eventName) {
-        this._events.set(eventName, new Event());
-        this.raise('event-registered', eventName)
+        if (!this._events.has(eventName)) {
+            this._events.set(eventName, new Event());
+            this.raise('event-registered', eventName)
+        }
     }
 
     delete(eventName) {
@@ -107,11 +110,13 @@ export class EventsManager {
     }
 
     registerListener(eventName, listener) {
+        let success = false;
         let event = this._events.get(eventName);
-        if(!event){
-            this.create(eventName);
+        if (event) {
+            event.registerListener(listener);
+            success = true;
         }
-        event.registerListener(listener);
+        return success;
     }
 
     unregisterListener(eventName, listener) {
@@ -182,6 +187,7 @@ export class ModulesManager {
 
         if (modules.has(moduleName)) {
             this.stop(moduleName)
+            modules.get(moduleName).cleanUp();
             modules.delete(moduleName);
             success = true;
         }

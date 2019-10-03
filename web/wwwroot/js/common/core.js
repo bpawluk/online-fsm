@@ -1,29 +1,36 @@
 'use strict'
-import * as coreUtils from './core-utils';
+import * as coreUtils from '../common/core-utils';
+import Sandbox from '../common/sandbox';
 
 export class Core {
     constructor() {
         this._isInit = false;
+        this._sandbox = new Sandbox(this);
         this._modulesManager = new coreUtils.ModulesManager();
         this._eventsManager = new coreUtils.EventsManager();
         this._interfacesManager = new coreUtils.InterfacesManager();
 
-        this.declareInterface('module', ['init', 'stop'], ['isInit']);
+        this.declareInterface('module', ['init', 'stop', 'cleanUp'], ['isInit']);
+        this.createEvent('app-init');
     }
 
     init() {
         if (!this._isInit) {
             this._modulesManager.initAll();
             this._isInit = true;
+            this.raiseEvent('app-init');
         }
+        return null;
     }
 
-    addModule(module, name) {
+    addModule(constructor, name) {
+        const module = new constructor(this._sandbox);
         this.assertInterface(module, 'module');
         this._modulesManager.add(module, name);
     }
 
-    addModuleAndInit(module, name) {
+    addModuleAndInit(constructor, name) {
+        const module = new constructor(this._sandbox);
         this.assertInterface(module, 'module');
         this._modulesManager.addAndInit(module, name);
     }

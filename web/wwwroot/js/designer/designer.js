@@ -1,8 +1,14 @@
 'use strict'
 import Core from '../common/core';
+import Sandbox from '../common/sandbox';
+import { Interaction } from '../designer/interaction';
 
 export function initializeDesigner(){
     const core = new Core();
+    core.addModule(Interaction, 'interaction');
+    core.addModule(null, 'canvas');
+    core.addModule(null, 'dom-manager');
+    core.init();
 }
 
 
