@@ -74,15 +74,19 @@ class Event {
 
 export class EventsManager {
     constructor() {
+        // Provides:
+        this.EVENT_REGISTERED_EVENT = 'event-registered';
+        this.EVENT_UNREGISTERED_EVENT = 'event-unregistered';
+
         this._events = new Map();
-        this._events.set('event-registered', new Event());
-        this._events.set('event-unregistered', new Event());
+        this._events.set(this.EVENT_REGISTERED_EVENT, new Event());
+        this._events.set(this.EVENT_UNREGISTERED_EVENT, new Event());
     }
 
     create(eventName) {
         if (!this._events.has(eventName)) {
             this._events.set(eventName, new Event());
-            this.raise('event-registered', eventName)
+            this.raise(this.EVENT_REGISTERED_EVENT, eventName)
         }
     }
 
@@ -92,7 +96,7 @@ export class EventsManager {
 
         if (events.has(eventName)) {
             events.delete(eventName);
-            this.raise('event-unregistered', eventName)
+            this.raise(this.EVENT_UNREGISTERED_EVENT, eventName)
             success = true;
         }
         return success;
@@ -127,6 +131,48 @@ export class EventsManager {
             success = event.unregisterListener(listener);
         }
         return success;
+    }
+}
+
+export class Mediator {
+    constructor() {
+        this._receivers = new Map();
+    }
+
+    register(key, receiver) {
+        let receivers = this._receivers;
+
+        if (receivers.has(key)) {
+            throw new Error('Receiver ' + key + ' already registered');
+        }
+
+        if (!receiver || typeof receiver !== 'function') {
+            throw new Error('Receiver must be a function');
+        }
+
+        receivers.set(key, receiver);
+    }
+
+    unregister(key) {
+        let success = false;
+        let receivers = this._receivers;
+
+        if (receivers.has(key)) {
+            receivers.delete(key);
+            success = true;
+        }
+
+        return success;
+    }
+
+    send(key, message) {
+        let receivers = this._receivers;
+
+        if (!receivers.has(key)) {
+            throw new Error('Receiver ' + key + ' not registered');
+        }
+
+        return receivers.get(key)(message);
     }
 }
 

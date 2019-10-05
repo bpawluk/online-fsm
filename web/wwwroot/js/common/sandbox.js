@@ -5,6 +5,18 @@ export class Sandbox {
         this._core = core;
     }
 
+    registerMessageReceiver(key, receiver) {
+        this._core.registerMessageReceiver(key, receiver);
+    }
+
+    unregisterMessageReceiver(key) {
+        return this._core.unregisterMessageReceiver(key);
+    }
+
+    sendMessage(key, message) {
+        return this._core.sendMessage(key, message);
+    }
+
     createEvent(name) {
         this._core.createEvent(name);
     }

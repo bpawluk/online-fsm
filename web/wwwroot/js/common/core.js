@@ -1,37 +1,42 @@
 'use strict'
-import * as coreUtils from '../common/core-utils';
+import { ModulesManager, EventsManager, InterfacesManager, Mediator } from '../common/core-utils';
 import Sandbox from '../common/sandbox';
 
 export class Core {
     constructor() {
+        // Provides:
+        this.APP_INIT_EVENT = 'app-init';
+        this.MODULE_INTERFACE = 'module';
+
         this._isInit = false;
         this._sandbox = new Sandbox(this);
-        this._modulesManager = new coreUtils.ModulesManager();
-        this._eventsManager = new coreUtils.EventsManager();
-        this._interfacesManager = new coreUtils.InterfacesManager();
+        this._mediator = new Mediator();
+        this._modulesManager = new ModulesManager();
+        this._eventsManager = new EventsManager();
+        this._interfacesManager = new InterfacesManager();
 
-        this.declareInterface('module', ['init', 'stop', 'cleanUp'], ['isInit']);
-        this.createEvent('app-init');
+        this.createEvent(this.APP_INIT_EVENT);
+        this.declareInterface(this.MODULE_INTERFACE, ['init', 'stop', 'cleanUp'], ['isInit']);
     }
 
     init() {
         if (!this._isInit) {
             this._modulesManager.initAll();
             this._isInit = true;
-            this.raiseEvent('app-init');
+            this.raiseEvent(this.APP_INIT_EVENT);
         }
         return null;
     }
 
     addModule(constructor, name) {
         const module = new constructor(this._sandbox);
-        this.assertInterface(module, 'module');
+        this.assertInterface(module, this.MODULE_INTERFACE);
         this._modulesManager.add(module, name);
     }
 
     addModuleAndInit(constructor, name) {
         const module = new constructor(this._sandbox);
-        this.assertInterface(module, 'module');
+        this.assertInterface(module, this.MODULE_INTERFACE);
         this._modulesManager.addAndInit(module, name);
     }
 
@@ -45,6 +50,18 @@ export class Core {
 
     stopModule(name) {
         return this._modulesManager.stop(name);
+    }
+
+    registerMessageReceiver(key, receiver) {
+        this._mediator.register(key, receiver);
+    }
+
+    unregisterMessageReceiver(key) {
+        return this._mediator.unregister(key);
+    }
+
+    sendMessage(key, message) {
+        return this._mediator.send(key, message);
     }
 
     createEvent(name) {
