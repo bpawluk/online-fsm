@@ -1,6 +1,6 @@
 'use strict'
-import { ModulesManager, EventsManager, InterfacesManager, Mediator } from '../common/core-utils';
-import Sandbox from '../common/sandbox';
+import { EventsManager, InterfacesManager, Mediator, ModulesManager } from '../common/core-utils.js';
+import { Sandbox } from '../common/sandbox.js';
 
 export class Core {
     constructor() {
@@ -16,7 +16,7 @@ export class Core {
         this._interfacesManager = new InterfacesManager();
 
         this.createEvent(this.APP_INIT_EVENT);
-        this.declareInterface(this.MODULE_INTERFACE, ['init', 'stop', 'cleanUp'], ['isInit']);
+        this.declareInterface(this.MODULE_INTERFACE, ['init', 'stop', 'cleanUp'], []);
     }
 
     init() {
@@ -28,14 +28,14 @@ export class Core {
         return null;
     }
 
-    addModule(constructor, name) {
-        const module = new constructor(this._sandbox);
+    addModule(constructor, name, config) {
+        const module = new constructor(this._sandbox, config);
         this.assertInterface(module, this.MODULE_INTERFACE);
         this._modulesManager.add(module, name);
     }
 
-    addModuleAndInit(constructor, name) {
-        const module = new constructor(this._sandbox);
+    addModuleAndInit(constructor, name, config) {
+        const module = new constructor(this._sandbox, config);
         this.assertInterface(module, this.MODULE_INTERFACE);
         this._modulesManager.addAndInit(module, name);
     }

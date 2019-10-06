@@ -16,3 +16,12 @@ export let ArrayUtils = {
         return success;
     }
 };
+
+export let ObjectUtils = {
+    forEachOwnProperty: function (object, action) {
+        for (let key in object) {
+            if (object.hasOwnProperty(key))
+                action(key, object[key]);
+        }
+    }
+}

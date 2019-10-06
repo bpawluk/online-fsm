@@ -8,7 +8,6 @@ export class Interaction {
         this.POINTER_DOWN_EVENT = 'pointer-down';
         this.POINTER_MOVE_EVENT = 'pointer-move';
         this.POINTER_UP_EVENT = 'pointer-up';
-        this.INTERACTION_TARGET_INTERFACE = 'interaction-target';
 
         // Depends on:
         this.APP_INIT_EVENT = 'app-init';
@@ -21,7 +20,6 @@ export class Interaction {
         this._sandbox.createEvent(this.POINTER_DOWN_EVENT);
         this._sandbox.createEvent(this.POINTER_MOVE_EVENT);
         this._sandbox.createEvent(this.POINTER_UP_EVENT);
-        this._sandbox.declareInterface(this.INTERACTION_TARGET_INTERFACE, ['addEventListener'], []);
     }
 
     init() {
@@ -36,7 +34,7 @@ export class Interaction {
     }
 
     makeInteractive(element) {
-        this._sandbox.assertInterface(element, this.INTERACTION_TARGET_INTERFACE);
+        element.addEventListener('selectstart', function (e) { e.preventDefault(); return false; }, false);
         element.addEventListener('dblclick', this._handleDoubleClick.bind(this));
         element.addEventListener('mousedown', this._handleMouseDown.bind(this));
         element.addEventListener('mousemove', this._handleMouseMove.bind(this));
@@ -63,22 +61,22 @@ export class Interaction {
     }
 
     _handleDoubleClick(e) {
-        var point = getPointInElement(e.target, e.clientX, e.clientY);
+        var point = this._getPointInElement(e.target, e.clientX, e.clientY);
         this._sandbox.raiseEvent(this.DOUBLE_CLICK_EVENT, { target: e.target, x: point.x, y: point.y });
     }
 
     _handleMouseDown(e) {
-        var point = getPointInElement(e.target, e.clientX, e.clientY);
+        var point = this._getPointInElement(e.target, e.clientX, e.clientY);
         this._sandbox.raiseEvent(this.POINTER_DOWN_EVENT, { target: e.target, x: point.x, y: point.y });
     }
 
     _handleMouseMove(e) {
-        var point = getPointInElement(e.target, e.clientX, e.clientY);
+        var point = this._getPointInElement(e.target, e.clientX, e.clientY);
         this._sandbox.raiseEvent(this.POINTER_MOVE_EVENT, { target: e.target, x: point.x, y: point.y });
     }
 
     _handleMouseUp(e) {
-        var point = getPointInElement(e.target, e.clientX, e.clientY);
+        var point = this._getPointInElement(e.target, e.clientX, e.clientY);
         this._sandbox.raiseEvent(this.POINTER_UP_EVENT, { target: e.target, x: point.x, y: point.y });
     }
 }

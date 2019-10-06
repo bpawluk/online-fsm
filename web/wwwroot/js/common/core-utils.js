@@ -1,5 +1,5 @@
 'use strict'
-import { ArrayUtils } from '../common/common-utils';
+import { ArrayUtils } from '../common/common-utils.js';
 
 class Interface {
     constructor(name, methods, properties) {
@@ -34,8 +34,8 @@ class Interface {
             }
         }
 
-        for (let i = 0, len = properties.length; i < len; i++) {
-            let currentMember = this._methods[i];
+        for (let i = 0, len = this._properties.length; i < len; i++) {
+            let currentMember = this._properties[i];
             if (!obj[currentMember] || typeof obj[currentMember] === 'function') {
                 throw new Error('Object does not implement the interface ' + this._name);
             }
@@ -251,10 +251,10 @@ export class InterfacesManager {
     }
 
     assert(obj, name) {
-        const interface = this._interfaces.get(name);
-        if (!interface) {
+        const iface = this._interfaces.get(name);
+        if (!iface) {
             throw new Error('Interface ' + name + ' is not declared');
         }
-        interface.isImplemtedBy(obj);
+        iface.isImplemtedBy(obj);
     }
 }

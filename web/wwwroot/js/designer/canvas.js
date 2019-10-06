@@ -1,7 +1,7 @@
 'use strict'
 
 export class Canvas {
-    constructor(sandbox) {
+    constructor(sandbox, config) {
         // Provides:
         this.CLEAR_CANVAS = 'canvas-clear';
         this.DRAW_ON_CANVAS = 'canvas-draw';
@@ -12,9 +12,11 @@ export class Canvas {
 
         // Depends on:
         this.APPEND_DOM_ELEMENT = 'append-dom-element';
+        this.MAKE_INTERACTIVE = 'make-interactive';
         this.APP_INIT_EVENT = 'app-init';
 
         this._isInit = false;
+        this._isInteractive = config && config.isInteractive !== undefined ? config.isInteractive : false;
         this._sandbox = sandbox;
         this._canvas;
         this._context;
@@ -36,8 +38,12 @@ export class Canvas {
 
     onAppInit() {
         //this._sandbox.unregisterListener('app-init', ???);
-        this._canvas = this._sandbox.sendMessage(this.APPEND_DOM_ELEMENT, 'canvas');
+        this._canvas = this._sandbox.sendMessage(this.APPEND_DOM_ELEMENT, { type: 'canvas', width: '800px', height: '600px' });
         this._context = this._canvas.getContext('2d', { alpha: false });
+        if (this._isInteractive) {
+            this._sandbox.sendMessage(this.MAKE_INTERACTIVE, this._canvas);
+        }
+        this.clear();
     }
 
     clear() {
@@ -48,8 +54,12 @@ export class Canvas {
     }
 
     draw(drawables) {
-        for (let i = 0, len = drawables.length; i < len; i++) {
-            drawables[i].draw(this._context);
+        if (drawables instanceof Array) {
+            for (let i = 0, len = drawables.length; i < len; i++) {
+                drawables[i].draw(this._context);
+            }
+        } else {
+            drawables.draw(this._context);
         }
     }
 

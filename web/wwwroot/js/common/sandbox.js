@@ -26,7 +26,7 @@ export class Sandbox {
     }
 
     raiseEvent(name, args) {
-        return this._core.raise(name, args);
+        return this._core.raiseEvent(name, args);
     }
 
     registerListener(name, listener) {
@@ -38,10 +38,10 @@ export class Sandbox {
     }
 
     declareInterface(name, methods, properties) {
-        this._core.declare(name, methods, properties);
+        this._core.declareInterface(name, methods, properties);
     }
 
     assertInterface(obj, name) {
-        this._core.assert(obj, name);
+        this._core.assertInterface(obj, name);
     }
 }
