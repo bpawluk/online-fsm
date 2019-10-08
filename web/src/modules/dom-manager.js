@@ -1,6 +1,6 @@
 'use strict'
 
-import { ObjectUtils } from "../common/common-utils.js";
+import { ObjectUtils } from "../common-utils.js";
 
 export class DomManager {
     constructor(sandbox, config) {
@@ -56,7 +56,7 @@ export class DomManager {
         }
 
         ObjectUtils.forEachOwnProperty(config, (key, value) => {
-            if(value !== null) {
+            if(elementToAppend.hasAttribute(key) !== null && value !== null) {
                 elementToAppend.setAttribute(key, value);
             }
         });

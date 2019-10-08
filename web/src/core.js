@@ -1,6 +1,6 @@
 'use strict'
-import { EventsManager, InterfacesManager, Mediator, ModulesManager } from '../common/core-utils.js';
-import { Sandbox } from '../common/sandbox.js';
+import { EventsManager, InterfacesManager, Mediator, ModulesManager } from './core-utils.js';
+import { Sandbox } from './sandbox.js';
 
 export class Core {
     constructor() {

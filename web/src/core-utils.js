@@ -1,5 +1,5 @@
 'use strict'
-import { ArrayUtils } from '../common/common-utils.js';
+import { ArrayUtils } from './common-utils.js';
 
 class Interface {
     constructor(name, methods, properties) {

@@ -2,13 +2,18 @@
 <div id="workspace">
 </div>
 <button id="addState">Add</button>
+<environment include="Development">
+    <script type="module" src="~/designer.js"></script>
+    <script type="module" src="~/common-utils.js"></script>
+    <script type="module" src="~/core-utils.js"></script>
+    <script type="module" src="~/sandbox.js"></script>
+    <script type="module" src="~/core.js"></script>
+    <script type="module" src="~/modules/canvas.js"></script>
+    <script type="module" src="~/modules/dom-manager.js"></script>
+    <script type="module" src="~/modules/interaction.js"></script>
+    <script type="module" src="~/modules/workspace.js"></script>
+</environment>
+<environment exclude="Development">
+    <script src="~/js/designer.js"></script>
+</environment>
 
-<script type="module" src="~/js/common/common-utils.js"></script>
-<script type="module" src="~/js/common/core-utils.js"></script>
-<script type="module" src="~/js/common/sandbox.js"></script>
-<script type="module" src="~/js/common/core.js"></script>
-<script type="module" src="~/js/designer/canvas.js"></script>
-<script type="module" src="~/js/designer/dom-manager.js"></script>
-<script type="module" src="~/js/designer/interaction.js"></script>
-<script type="module" src="~/js/designer/workspace.js"></script>
-<script type="module" src="~/js/designer/designer.js"></script>

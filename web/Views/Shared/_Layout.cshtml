@@ -7,12 +7,6 @@
 </head>
 <body>
     @RenderBody()
-    <environment exclude="Development">
-        <script src="~/lib/jquery/jquery.min.js"></script>
-    </environment>
-    <environment include="Development">
-        <script src="~/lib/jquery/jquery.js"></script>
-    </environment>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

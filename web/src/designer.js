@@ -1,9 +1,9 @@
 'use strict'
-import { Core } from '../common/core.js';
-import { Canvas } from '../designer/canvas.js';
-import { DomManager } from '../designer/dom-manager.js';
-import { Interaction } from '../designer/interaction.js';
-import { Workspace } from '../designer/workspace.js';
+import { Core } from './core.js';
+import { Canvas } from './modules/canvas.js';
+import { DomManager } from './modules/dom-manager.js';
+import { Interaction } from './modules/interaction.js';
+import { Workspace } from './modules/workspace.js';
 
 (function (domEntrypoint) {
     const core = new Core();
