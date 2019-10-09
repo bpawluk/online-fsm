@@ -2,9 +2,10 @@
 
 class Circle {
     constructor(x, y, radius) {
-        this._radius = radius === undefined ? 50 : x;;
         this._posX = x === undefined ? 0 : x;
         this._posY = y === undefined ? 0 : y;
+        this._radius = radius === undefined ? 50 : x;;
+        this._state = 'default';
     }
 
     contains(x, y) {
@@ -15,15 +16,36 @@ class Circle {
     }
 
     draw(context) {
+        context.save();
+        switch (this._state) {
+            case 'default':
+                context.strokeStyle = '#000000';
+                break;
+            case 'hovered':
+                context.strokeStyle = '#3BA7FF';
+                break;
+            case 'selected':
+                context.strokeStyle = '#000089';
+                break;
+            default:
+                throw new Error('There is no ' + this._state + ' state defined.');
+        }
         context.beginPath();
         context.arc(this._posX, this._posY, this._radius, 0, 2 * Math.PI);
+        context.fillStyle = '#FFFFFF';
+        context.fill();
         context.stroke();
+        context.restore();
     }
 
     setCoords(x, y) {
         this._posX = x;
         this._posY = y;
-    }  
+    }
+
+    setState(state) {
+        this._state = state;
+    }
 }
 
 export class Workspace {
@@ -45,8 +67,9 @@ export class Workspace {
         this._sandbox = sandbox;
         this._elements = [];
         this._selectedElement = null;
+        this._hoveredElement = null;
 
-        this._sandbox.declareInterface(this.WORKSPACE_ELEMENT_INTERFACE, ['contains', 'draw','setCoords'], []);
+        this._sandbox.declareInterface(this.WORKSPACE_ELEMENT_INTERFACE, ['contains', 'draw', 'setCoords', 'setState'], []);
     }
 
     init() {
@@ -86,19 +109,37 @@ export class Workspace {
     }
 
     _handlePointerDown(e) {
-        let elements = this._elements;
-        for (let i = elements.length - 1; i >= 0; i--) {
-            let current = elements[i];
-            if (elements[i].contains(e.x, e.y)) {
-                this._selectedElement = current;
-                break;
+        let elementClicked = this._getElementAtPoint(e.x, e.y);
+        if (elementClicked) {
+            if (this._selectedElement) {
+                this._selectedElement.setState('default');
             }
+            this._selectedElement = elementClicked;
+            elementClicked.setState('selected')
         }
     }
 
     _handlePointerMove(e) {
+        let redrawNeeded = false;
         if (this._selectedElement) {
             this._selectedElement.setCoords(e.x, e.y);
+            redrawNeeded = true;
+        } else {
+            let elementHovered = this._getElementAtPoint(e.x, e.y);
+            if (elementHovered) {
+                if (this._hoveredElement) {
+                    this._hoveredElement.setState('default');
+                }
+                this._hoveredElement = elementHovered;
+                elementHovered.setState('hovered');
+                redrawNeeded = true;
+            } else if (this._hoveredElement) {
+                this._hoveredElement.setState('default');
+                this._hoveredElement = null;
+                redrawNeeded = true;
+            }
+        }
+        if (redrawNeeded) {
             this._sandbox.sendMessage(this.REDRAW_CANVAS, this._elements);
         }
     }
@@ -107,5 +148,16 @@ export class Workspace {
         if (this._selectedElement) {
             this._selectedElement = null;
         }
+    }
+
+    _getElementAtPoint(x, y) {
+        let elements = this._elements;
+        for (let i = elements.length - 1; i >= 0; i--) {
+            let current = elements[i];
+            if (current.contains(x, y)) {
+                return current;
+            }
+        }
+        return null;
     }
 }
