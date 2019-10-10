@@ -1,14 +1,51 @@
 'use strict'
 
-class Circle {
-    constructor(x, y, radius) {
+class Shape {
+    constructor(x, y) {
         this._posX = x === undefined ? 0 : x;
         this._posY = y === undefined ? 0 : y;
-        this._radius = radius === undefined ? 50 : x;;
         this._state = 'default';
     }
 
+    contains(x, y) { return false }
+
+    draw(context) { }
+
+    move(x, y) {
+        this._posX = x;
+        this._posY = y;
+    }
+
+    select() {
+        this._state = 'selected';
+    }
+
+    unselect() {
+        this._state = 'default';
+    }
+
+    pointerOver() {
+        if (this._state !== 'selected') {
+            this._state = 'hovered';
+        }
+    }
+
+    pointerOut() {
+        if (this._state !== 'selected') {
+            this._state = 'default';
+        }
+    }
+}
+
+class Circle extends Shape {
+    constructor(ruler, x, y, radius) {
+        super(x, y);
+        this._radius = radius === undefined ? 50 : x;
+        this._ruler = ruler;
+    }
+
     contains(x, y) {
+        // TODO: CHANGE SQUARE TO CIRCLE
         return x >= this._posX - this._radius
             && x <= this._posX + this._radius
             && y >= this._posY - this._radius
@@ -39,38 +76,62 @@ class Circle {
     }
 
     move(x, y) {
-        this._posX = x;
-        this._posY = y;
-    }
-
-    select() {
-        this._state = 'selected';
-    }
-
-    unselect() {
-        this._state = 'default';
-    }
-
-    pointerOver() {
-        if (this._state !== 'selected') {
-            this._state = 'hovered';
-        }
-    }
-
-    pointerOut() {
-        if (this._state !== 'selected') {
-            this._state = 'default';
+        if (this._ruler) {
+            let bounds = {
+                left: this._radius,
+                top: this._radius,
+                right: this._radius,
+                bottom: this._radius
+            }
+            let newPoint = this._ruler.pull(bounds, x, y);
+            super.move(newPoint.x, newPoint.y);
+        } else {
+            super.move(x, y);
         }
     }
 }
 
+class Ruler {
+    constructor(distance, reach) {
+        this._distance = distance === undefined ? 50 : distance;
+        this._reach = reach === undefined ? 5 : reach;
+    }
+
+    pull(bounds, x, y) {
+        return {
+            x: this._computePosition(x, bounds.left, bounds.right),
+            y: this._computePosition(y, bounds.bottom, bounds.top)
+        }
+    }
+
+    _computePosition(pos, left, right) {
+        let nearestRuler = this._nearestRuler(pos, left, right);
+        return nearestRuler.distance <= this._reach ? nearestRuler.position : pos;
+    }
+
+    _nearestRuler(pos, left, right) {
+        let distToLeft = (pos - left) % this._distance;
+        let distToRight = this._distance - ((pos + right) % this._distance);
+        let nearestRuler = {};
+        if(distToLeft <= distToRight){
+            nearestRuler.distance = distToLeft;
+            nearestRuler.position = pos - distToLeft;
+        } else {
+            nearestRuler.distance = distToRight;
+            nearestRuler.position = pos + distToRight;
+        }
+        return nearestRuler;
+    }
+}
+
 export class DesignerState {
-    constructor(sandbox) {
+    constructor(sandbox, config) {
         // Provides:
         this.DESIGNER_ELEMENT_INTERFACE = 'workspace-element';
         this.GET_ITEM_AT_POINT = 'get-item-at-point';
 
         // Depends on:
+        // TODO: Const canvas drawable 
         this.DRAW_ON_CANVAS = 'canvas-draw';
         this.REDRAW_CANVAS = 'canvas-redraw'
         this.SELECT_ITEM = 'select-item';
@@ -84,6 +145,11 @@ export class DesignerState {
         this._sandbox = sandbox;
 
         this._items = [];
+        this._ruler = null;
+
+        if (config && config.useRulers) {
+            this._ruler = new Ruler(config.rulerSpacing, config.rulerReach)
+        }
 
         this._sandbox.declareInterface(this.DESIGNER_ELEMENT_INTERFACE, ['contains', 'draw', 'move', 'select',
             'unselect', 'pointerOver', 'pointerOut'], []);
@@ -139,7 +205,7 @@ export class DesignerState {
         if (doubleClickedItem) {
             // TODO: Make accepting state
         } else {
-            let newItem = new Circle(e.x, e.y);
+            let newItem = new Circle(this._ruler, e.x, e.y);
             this._sandbox.sendMessage(this.SELECT_ITEM, newItem);
             this.addItem(newItem);
         }
