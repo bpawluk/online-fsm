@@ -42,7 +42,7 @@ export class Interaction {
     }
 
     stop() {
-
+        this._isInit = false;
     }
 
     cleanUp() {

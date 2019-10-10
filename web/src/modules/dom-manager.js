@@ -66,7 +66,7 @@ export class DomManager {
     }
 
     stop() {
-
+        this._isInit = false;
     }
 
     cleanUp() {

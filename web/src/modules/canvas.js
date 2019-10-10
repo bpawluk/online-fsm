@@ -8,7 +8,6 @@ export class Canvas {
         this.REDRAW_CANVAS = 'canvas-redraw';
         this.CANVAS_CLEARED_EVENT = 'canvas-cleared';
         this.CANVAS_DRAWN_EVENT = 'canvas-drawn';
-        this.CANVAS_REDRAWN_EVENT = 'canvas-redrawn';
 
         // Depends on:
         this.APPEND_DOM_ELEMENT = 'append-dom-element';
@@ -26,7 +25,6 @@ export class Canvas {
         this._sandbox.registerMessageReceiver(this.REDRAW_CANVAS, this.redraw.bind(this));
         this._sandbox.createEvent(this.CANVAS_CLEARED_EVENT);
         this._sandbox.createEvent(this.CANVAS_DRAWN_EVENT);
-        this._sandbox.createEvent(this.CANVAS_REDRAWN_EVENT);
     }
 
     init() {
@@ -51,6 +49,7 @@ export class Canvas {
         this._context.fillStyle = '#FFFFFF';
         this._context.fillRect(0, 0, this._canvas.width, this._canvas.height);
         this._context.restore();
+        this._sandbox.raiseEvent(this.CANVAS_CLEARED_EVENT, this._canvas);
     }
 
     draw(drawables) {
@@ -61,6 +60,7 @@ export class Canvas {
         } else {
             drawables.draw(this._context);
         }
+        this._sandbox.raiseEvent(this.CANVAS_DRAWN_EVENT, { canvas: this._canvas, drawables: drawables });
     }
 
     redraw(drawables) {
@@ -69,7 +69,7 @@ export class Canvas {
     }
 
     stop() {
-
+        this._isInit = false;
     }
 
     cleanUp() {
