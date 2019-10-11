@@ -9,7 +9,7 @@ import { DesignerState } from './modules/designerState.js';
 (function (domEntrypoint) {
     const core = new Core();
     core.addModule(Canvas, 'canvas', { isInteractive: true });
-    core.addModule(DesignerState, 'designer-state', { useRulers: true, rulerSpacing: 10, rulerReach: 4 });
+    core.addModule(DesignerState, 'designer-state', { useRulers: true, rulersVisible: true, rulerSpacing: 25, rulerReach: 3 });
     core.addModule(DomManager, 'dom-manager', { entrypoint: domEntrypoint });
     core.addModule(Interaction, 'interaction');
     core.addModule(Workspace, 'workspace');

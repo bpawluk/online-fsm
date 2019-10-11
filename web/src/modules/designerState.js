@@ -5,6 +5,7 @@ class Shape {
         this._posX = x === undefined ? 0 : x;
         this._posY = y === undefined ? 0 : y;
         this._state = 'default';
+        this._pointerOffset = null;
     }
 
     contains(x, y) { return false }
@@ -12,16 +13,27 @@ class Shape {
     draw(context) { }
 
     move(x, y) {
+        if (this._pointerOffset) {
+            x = x - this._pointerOffset.x;
+            y = y - this._pointerOffset.y;
+        }
         this._posX = x;
         this._posY = y;
     }
 
-    select() {
+    select(pointerPosition) {
         this._state = 'selected';
+        if (pointerPosition) {
+            this._pointerOffset = {
+                x: pointerPosition.x - this._posX,
+                y: pointerPosition.y - this._posY
+            }
+        }
     }
 
     unselect() {
         this._state = 'default';
+        this._pointerAnchor = null;
     }
 
     pointerOver() {
@@ -62,7 +74,7 @@ class Circle extends Shape {
                 context.strokeStyle = '#3BA7FF';
                 break;
             case 'selected':
-                context.strokeStyle = '#000089';
+                context.strokeStyle = '#336699';
                 break;
             default:
                 throw new Error('There is no ' + this._state + ' state defined.');
@@ -76,6 +88,7 @@ class Circle extends Shape {
     }
 
     move(x, y) {
+        super.move(x, y);
         if (this._ruler) {
             let bounds = {
                 left: this._radius,
@@ -83,18 +96,62 @@ class Circle extends Shape {
                 right: this._radius,
                 bottom: this._radius
             }
-            let newPoint = this._ruler.pull(bounds, x, y);
-            super.move(newPoint.x, newPoint.y);
-        } else {
-            super.move(x, y);
-        }
+            let newPoint = this._ruler.pull(bounds, this._posX, this._posY);
+            this._posX = newPoint.x;
+            this._posY = newPoint.y;
+        } 
     }
 }
 
 class Ruler {
-    constructor(distance, reach) {
+    constructor(visibility, distance, reach) {
         this._distance = distance === undefined ? 50 : distance;
         this._reach = reach === undefined ? 5 : reach;
+        this.isVisible = visibility;
+    }
+
+    draw(ctx) {
+        let canvas = ctx.canvas;
+
+        let smallerDim = {
+            name: 'height',
+            value: canvas.height
+        };
+        let biggerDim = {
+            name: 'width',
+            value: canvas.width
+        };
+
+        if (canvas.width < canvas.height) {
+            let temp = smallerDim;
+            smallerDim = biggerDim;
+            biggerDim = temp;
+        }
+
+        ctx.save();
+        ctx.strokeStyle = '#C0C0C0'
+        ctx.setLineDash([5,3]);
+        ctx.beginPath();
+
+        let i = this._distance;
+        for (; i < smallerDim.value; i += this._distance) {
+            ctx.moveTo(0, i);
+            ctx.lineTo(canvas.width, i);
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, canvas.height);
+        }
+        for (; i < biggerDim.value; i += this._distance) {
+            if (biggerDim.name = 'width') {
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+            } else {
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+            }
+        }
+
+        ctx.stroke();
+        ctx.restore();
     }
 
     pull(bounds, x, y) {
@@ -113,7 +170,7 @@ class Ruler {
         let distToLeft = (pos - left) % this._distance;
         let distToRight = this._distance - ((pos + right) % this._distance);
         let nearestRuler = {};
-        if(distToLeft <= distToRight){
+        if (distToLeft <= distToRight) {
             nearestRuler.distance = distToLeft;
             nearestRuler.position = pos - distToLeft;
         } else {
@@ -131,7 +188,6 @@ export class DesignerState {
         this.GET_ITEM_AT_POINT = 'get-item-at-point';
 
         // Depends on:
-        // TODO: Const canvas drawable 
         this.DRAW_ON_CANVAS = 'canvas-draw';
         this.REDRAW_CANVAS = 'canvas-redraw'
         this.SELECT_ITEM = 'select-item';
@@ -144,11 +200,12 @@ export class DesignerState {
         this._isInit = false;
         this._sandbox = sandbox;
 
+        this._passiveItems = [];
         this._items = [];
         this._ruler = null;
 
         if (config && config.useRulers) {
-            this._ruler = new Ruler(config.rulerSpacing, config.rulerReach)
+            this._ruler = new Ruler(config.rulersVisible, config.rulerSpacing, config.rulerReach)
         }
 
         this._sandbox.declareInterface(this.DESIGNER_ELEMENT_INTERFACE, ['contains', 'draw', 'move', 'select',
@@ -169,6 +226,10 @@ export class DesignerState {
 
     onAppInit() {
         //this._sandbox.unregisterListener('app-init', ???);
+        if (this._ruler && this._ruler.isVisible) {
+            this._passiveItems.push(this._ruler);
+        }
+        this._callRedraw();
     }
 
     addItem(item) {
@@ -213,7 +274,7 @@ export class DesignerState {
 
     _handleItemDragged(e) {
         e.item.move(e.point.x, e.point.y);
-        this._sandbox.sendMessage(this.REDRAW_CANVAS, this._items);
+        this._callRedraw();
     }
 
     _handlePointerOverChanged(e) {
@@ -230,7 +291,7 @@ export class DesignerState {
         }
 
         if (redrawNeeded) {
-            this._sandbox.sendMessage(this.REDRAW_CANVAS, this._items);
+            this._callRedraw();
         }
     }
 
@@ -243,12 +304,16 @@ export class DesignerState {
         }
 
         if (e.newItem) {
-            e.newItem.select();
+            e.newItem.select(e.point);
             redrawNeeded = true;
         }
 
         if (redrawNeeded) {
-            this._sandbox.sendMessage(this.REDRAW_CANVAS, this._items);
+            this._callRedraw();
         }
+    }
+
+    _callRedraw(){
+        this._sandbox.sendMessage(this.REDRAW_CANVAS, this._passiveItems.concat(this._items));
     }
 }
