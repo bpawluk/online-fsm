@@ -129,8 +129,7 @@ class Ruler {
         }
 
         ctx.save();
-        ctx.strokeStyle = '#C0C0C0'
-        ctx.setLineDash([5,3]);
+        ctx.strokeStyle = '#F0F0F0'
         ctx.beginPath();
 
         let i = this._distance;

@@ -1,0 +1,17 @@
+{
+  "name": "online-fsm",
+  "version": "1.0.0",
+  "description": "finite state machine simulator",
+  "devDependencies": {
+    "mocha": "^6.2.1",
+    "esm": "^3.2.25",
+    "webpack-cli": "^3.3.9",
+    "webpack": "^4.41.0"
+  },
+  "scripts": {
+    "test": "mocha --recursive ./src/tests/*.js",
+    "minify": "webpack --config webpack.config.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
