@@ -6,6 +6,10 @@ export class Core {
     constructor() {
         // Provides:
         this.APP_INIT_EVENT = 'app-init';
+
+        // Depends on:
+
+        // Requires interfaces:
         this.MODULE_INTERFACE = 'module';
 
         this._isInit = false;
@@ -16,7 +20,7 @@ export class Core {
         this._interfacesManager = new InterfacesManager();
 
         this.createEvent(this.APP_INIT_EVENT);
-        this.declareInterface(this.MODULE_INTERFACE, ['init', 'stop', 'cleanUp'], []);
+        this.declareInterface(this.MODULE_INTERFACE, ['init', 'start', 'stop', 'cleanUp'], ['isInit', 'isRunning']);
     }
 
     init() {
@@ -29,27 +33,24 @@ export class Core {
     }
 
     addModule(constructor, name, config) {
+        if(this._isInit){
+            throw new Error('Cannot add modules when the app is initialised');
+        }
         const module = new constructor(this._sandbox, config);
         this.assertInterface(module, this.MODULE_INTERFACE);
         this._modulesManager.add(module, name);
     }
 
-    addModuleAndInit(constructor, name, config) {
-        const module = new constructor(this._sandbox, config);
-        this.assertInterface(module, this.MODULE_INTERFACE);
-        this._modulesManager.addAndInit(module, name);
-    }
-
-    removeModule(name) {
-        return this._modulesManager.remove(name);
-    }
-
-    initModule(name) {
-        return this._modulesManager.init(name);
+    startModule(name) {
+        return this._modulesManager.start(name);
     }
 
     stopModule(name) {
         return this._modulesManager.stop(name);
+    }
+
+    removeModule(name) {
+        return this._modulesManager.remove(name);
     }
 
     registerMessageReceiver(key, receiver) {

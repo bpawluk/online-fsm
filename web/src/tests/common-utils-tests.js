@@ -1,7 +1,6 @@
 var assert = require('assert');
-// import { ObjectUtils, ArrayUtils } from "../common-utils.js";
-require = require('esm')(module)
-var utils = require('../common-utils.js')
+require = require('esm')(module);
+var utils = require('../common-utils.js');
 
 describe('Testing common-utils.js', function () {
     describe('ArrayUtils', function () {

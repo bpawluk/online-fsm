@@ -29,15 +29,15 @@ class Interface {
 
         for (let i = 0, len = this._methods.length; i < len; i++) {
             let currentMember = this._methods[i];
-            if (!obj[currentMember] || typeof obj[currentMember] !== 'function') {
-                throw new Error('Object does not implement the interface ' + this._name);
+            if (obj[currentMember] === undefined || typeof obj[currentMember] !== 'function') {
+                throw new Error('Object does not implement the interface ' + this._name + '. Missing method: ' + currentMember);
             }
         }
 
         for (let i = 0, len = this._properties.length; i < len; i++) {
             let currentMember = this._properties[i];
-            if (!obj[currentMember] || typeof obj[currentMember] === 'function') {
-                throw new Error('Object does not implement the interface ' + this._name);
+            if (obj[currentMember] === undefined || typeof obj[currentMember] === 'function') {
+                throw new Error('Object does not implement the interface ' + this._name+ '. Missing properties: ' + currentMember);
             }
         }
     }
@@ -206,12 +206,17 @@ export class ModulesManager {
         }
     }
 
-    addAndInit(module, name) {
-        this.add(module, name);
-        if (!module.isInit) {
-            module.init();
+    start(moduleName) {
+        let success = false;
+        let module = this._modules.get(moduleName)
+
+        if (module) {
+            if (!module.isRunning) {
+                module.start();
+            }
+            success = true;
         }
-        return true;
+        return success;
     }
 
     stop(moduleName) {
@@ -219,7 +224,7 @@ export class ModulesManager {
         let module = this._modules.get(moduleName)
 
         if (module) {
-            if (module.isInit) {
+            if (module.isRunning) {
                 module.stop();
             }
             success = true;

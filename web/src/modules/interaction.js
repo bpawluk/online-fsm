@@ -12,10 +12,12 @@ export class Interaction {
         // Depends on:
         this.APP_INIT_EVENT = 'app-init';
 
-        this._isInit = false;
+        // Requires interfaces:
+
+        this.isInit = false;
+        this.isRunning = false;
         this._sandbox = sandbox;
 
-        this._sandbox.registerMessageReceiver(this.MAKE_INTERACTIVE, this.makeInteractive.bind(this));
         this._sandbox.createEvent(this.DOUBLE_CLICK_EVENT);
         this._sandbox.createEvent(this.POINTER_DOWN_EVENT);
         this._sandbox.createEvent(this.POINTER_MOVE_EVENT);
@@ -23,9 +25,17 @@ export class Interaction {
     }
 
     init() {
-        if (!this._isInit) {
+        if (!this.isInit) {
             this._sandbox.registerListener(this.APP_INIT_EVENT, this.onAppInit.bind(this));
-            this._isInit = true;
+            this.isInit = true;
+            this.start();
+        }
+    }
+
+    start() {
+        if (!this.isRunning) {
+            this._sandbox.registerMessageReceiver(this.MAKE_INTERACTIVE, this.makeInteractive.bind(this));
+            this.isRunning = true;
         }
     }
 
@@ -42,7 +52,10 @@ export class Interaction {
     }
 
     stop() {
-        this._isInit = false;
+        if (this.isRunning) {
+            this.isRunning = false;
+            this._sandbox.unregisterMessageReceiver(this.MAKE_INTERACTIVE);
+        }
     }
 
     cleanUp() {

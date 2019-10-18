@@ -10,21 +10,29 @@ export class DomManager {
         // Depends on:
         this.APP_INIT_EVENT = 'app-init';
 
+        // Requires interfaces:
+
         if (!config || !config.entrypoint) {
             throw new Error('DomManager requires configuration object with an entrypoint defined');
         }
 
-        this._isInit = false;
+        this.isInit = false;
+        this.isRunning = false;
         this._sandbox = sandbox;
         this._outerDiv = document.getElementById(config.entrypoint);
-
-        this._sandbox.registerMessageReceiver(this.APPEND_DOM_ELEMENT, this.appendDomElement.bind(this));
     }
 
     init() {
-        if (!this._isInit) {
+        if (!this.isInit) {
             this._sandbox.registerListener(this.APP_INIT_EVENT, this.onAppInit.bind(this));
-            this._isInit = true;
+            this.isInit = true;
+            this.start();
+        }
+    }
+
+    start() {
+        if (!this.isRunning) {
+            this._sandbox.registerMessageReceiver(this.APPEND_DOM_ELEMENT, this.appendDomElement.bind(this));
         }
     }
 
@@ -56,7 +64,7 @@ export class DomManager {
         }
 
         ObjectUtils.forEachOwnProperty(config, (key, value) => {
-            if(elementToAppend.hasAttribute(key) !== null && value !== null) {
+            if (elementToAppend.hasAttribute(key) !== null && value !== null) {
                 elementToAppend.setAttribute(key, value);
             }
         });
@@ -66,10 +74,11 @@ export class DomManager {
     }
 
     stop() {
-        this._isInit = false;
+        if (this.isRunning) {
+            this.isRunning = false;
+            this._sandbox.unregisterMessageReceiver(this.APPEND_DOM_ELEMENT);
+        }
     }
 
-    cleanUp() {
-
-    }
+    cleanUp() { }
 }
