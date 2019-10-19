@@ -5,6 +5,11 @@ class Shape {
         config = config || {};
         this._posX = config.x === undefined ? 0 : config.x;
         this._posY = config.y === undefined ? 0 : config.y;
+        this.isHoverable = !!config.isHoverable;
+        this.isSelectable = !!config.isSelectable;
+        this.isMovable = !!config.isMovable;
+        this.isPullable = !!config.isPullable;
+        this.isConnectible = !!config.isConnectible;
         this._state = 'default';
         this._pointerOffset = null;
     }
@@ -15,11 +20,11 @@ class Shape {
 
     getBounds() { return null }
 
+    getPosition() {
+        return { x: this._posX, y: this._posY };
+    }
+
     move(x, y) {
-        if (this._pointerOffset) {
-            x = x - this._pointerOffset.x;
-            y = y - this._pointerOffset.y;
-        }
         this._posX = x;
         this._posY = y;
     }
@@ -30,7 +35,7 @@ class Shape {
             this._pointerOffset = {
                 x: pointerPosition.x - this._posX,
                 y: pointerPosition.y - this._posY
-            }
+            };
         }
     }
 
@@ -57,27 +62,24 @@ class Circle extends Shape {
         config = config || {};
         super(config);
         this._radius = config.radius === undefined ? 50 : config.radius;
-        this.isHoverable = !!config.isHoverable;
-        this.isSelectable = !!config.isSelectable;
-        this.isMovable = !!config.isMovable;
     }
 
     contains(x, y) {
         let dx = Math.abs(this._posX - x);
-        if(dx > this._radius) {
+        if (dx > this._radius) {
             return false;
         }
 
         let dy = Math.abs(this._posY - y);
-        if(dy > this._radius) {
+        if (dy > this._radius) {
             return false
         }
-        
-        if(dx + dy <= this._radius){
+
+        if (dx + dy <= this._radius) {
             return true
         }
 
-        return dx*dx + dy*dy <= this._radius*this._radius
+        return dx * dx + dy * dy <= this._radius * this._radius
     }
 
     draw(context) {
@@ -103,6 +105,15 @@ class Circle extends Shape {
         context.restore();
     }
 
+    move(x, y) {
+        if (this._pointerOffset) {
+            super.move(x - this._pointerOffset.x, y - this._pointerOffset.y);
+        }
+        else {
+            super.move(x, y);
+        }
+    }
+
     getBounds() {
         return {
             left: this._posX - this._radius,
@@ -110,6 +121,49 @@ class Circle extends Shape {
             right: this._posX + this._radius,
             bottom: this._posY - this._radius
         }
+    }
+}
+
+class Arrow extends Shape {
+    constructor(config) {
+        config = config || {};
+        super(config);
+
+        if (!config.first) {
+            throw new Error('Arrow needs to connect at least one item')
+        }
+
+        this.isConnector = true;
+        this.isSet = false;
+        this.firstItem = config.first;
+        this.secondItem = config.second || config.first;
+    }
+
+    move(x, y) {
+        if (this.secondItem) {
+            
+        }
+        else {
+            super.move(x, y);
+        }
+    }
+
+    setEndTemporarily(item) {
+        this.secondItem = item;
+    }
+
+    setEnd(item){
+        this.secondItem = item;
+        this.isSet = true;
+    }
+
+    draw(context) {
+        let from = this.firstItem.getPosition();
+        let to = this.secondItem ? this.secondItem.getPosition() : { x: this._posX, y: this._posY };
+        context.beginPath();
+        context.moveTo(from.x, from.y);
+        context.lineTo(to.x, to.y);
+        context.stroke();
     }
 }
 
@@ -128,7 +182,8 @@ export class ShapeFactory {
         this._sandbox = sandbox;
 
         this._shapesRegistry = {
-            circle: Circle
+            circle: Circle,
+            arrow: Arrow
         };
     }
 
@@ -141,7 +196,9 @@ export class ShapeFactory {
     }
 
     start() {
-        this._sandbox.registerMessageReceiver(this.CREATE_SHAPE, this.createShape.bind(this));
+        if (!this.isRunning) {
+            this._sandbox.registerMessageReceiver(this.CREATE_SHAPE, this.createShape.bind(this));
+        }
     }
 
     onAppInit() {

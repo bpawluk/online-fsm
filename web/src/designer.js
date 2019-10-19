@@ -6,6 +6,7 @@ import { Interaction } from './modules/interaction.js';
 import { Workspace } from './modules/workspace.js';
 import { ShapeFactory } from './modules/shape-factory.js';
 import { Ruler } from './modules/ruler.js';
+import { ItemConnector } from './modules/item-connector.js';
 
 (function (domEntrypoint) {
     const core = new Core();
@@ -15,5 +16,6 @@ import { Ruler } from './modules/ruler.js';
     core.addModule(Workspace, 'workspace');
     core.addModule(ShapeFactory, 'shape-factory');
     core.addModule(Ruler, 'ruler', {distance: 25, reach: 3, visibility: true});
+    core.addModule(ItemConnector, 'item-connector');
     core.init();
 })('workspace');
