@@ -42,9 +42,15 @@ export class ItemConnector {
 
     onItemPressed(e) {
         if (e.item.isConnectible) {
-            let newArrow = this._sandbox.sendMessage(this.CREATE_SHAPE, { shape: 'arrow', config: { first: e.item, x: e.point.x, y: e.point.y, isMovable: true, isPullable: false } });
-            this._sandbox.sendMessage(this.ADD_ITEM, newArrow);
-            this._sandbox.sendMessage(this.BEGIN_DRAG, { item: newArrow, point: { x: e.x, y: e.y } });
+            let newConnector = this._getConnectorFor(e.item, {
+                first: e.item, x: e.point.x, y: e.point.y,
+                isMovable: true, isSelectable: true,
+                isHoverable: true, isPullable: false
+            });
+            if (newConnector) {
+                this._sandbox.sendMessage(this.ADD_ITEM, newConnector);
+                this._sandbox.sendMessage(this.BEGIN_DRAG, { item: newConnector, point: { x: e.x, y: e.y } });
+            }
         }
     }
 
@@ -53,7 +59,7 @@ export class ItemConnector {
             let itemAt = this._sandbox.sendMessage(this.GET_ITEM_AT, e.point);
             if (itemAt && itemAt.isConnectible) {
                 e.item.setEndTemporarily(itemAt);
-            } 
+            }
             else {
                 e.item.setEndTemporarily(null);
             }
@@ -81,5 +87,14 @@ export class ItemConnector {
 
     cleanUp() {
         this._sandbox.unregisterMessageReceiver(this.CREATE_SHAPE);
+    }
+
+    _getConnectorFor(item, config) {
+        switch (item.constructor.name) {
+            case 'Circle':
+                return this._sandbox.sendMessage(this.CREATE_SHAPE, { shape: 'circleConnector', config: config });
+            default:
+                return null;
+        }
     }
 }

@@ -18,7 +18,14 @@ class Shape {
 
     draw(context) { }
 
-    getBounds() { return null }
+    getBounds() {
+        return {
+            left: this._posX,
+            top: this._posY,
+            right: this._posX,
+            bottom: this._posY
+        }
+    }
 
     getPosition() {
         return { x: this._posX, y: this._posY };
@@ -114,6 +121,10 @@ class Circle extends Shape {
         }
     }
 
+    getRadius() {
+        return this._radius;
+    }
+
     getBounds() {
         return {
             left: this._posX - this._radius,
@@ -124,7 +135,7 @@ class Circle extends Shape {
     }
 }
 
-class Arrow extends Shape {
+class CircleConnector extends Shape {
     constructor(config) {
         config = config || {};
         super(config);
@@ -137,13 +148,28 @@ class Arrow extends Shape {
         this.isSet = false;
         this.firstItem = config.first;
         this.secondItem = config.second || config.first;
+
+        this._angleOffset = 0;
+        this._containsToleration = 5;
+    }
+
+    contains(x, y) {
+        if (this.isSet) {
+            let closestPoint = this._getPointClosestTo(x, y);
+            let dx = x - closestPoint.x;
+            let dy = y - closestPoint.y;
+            if (Math.sqrt(dx * dx + dy * dy) <= this._containsToleration) {
+                return true;
+            }
+        }
+        return false;
     }
 
     move(x, y) {
-        if (this.secondItem) {
+        if (this.isSet) {
             
         }
-        else {
+        else if (!this.secondItem) {
             super.move(x, y);
         }
     }
@@ -152,18 +178,59 @@ class Arrow extends Shape {
         this.secondItem = item;
     }
 
-    setEnd(item){
+    setEnd(item) {
         this.secondItem = item;
         this.isSet = true;
     }
 
     draw(context) {
+        context.save();
+        switch (this._state) {
+            case 'default':
+                context.strokeStyle = '#000000';
+                break;
+            case 'hovered':
+                context.strokeStyle = '#3BA7FF';
+                break;
+            case 'selected':
+                context.strokeStyle = '#336699';
+                break;
+            default:
+                throw new Error('There is no ' + this._state + ' state defined.');
+        }
         let from = this.firstItem.getPosition();
         let to = this.secondItem ? this.secondItem.getPosition() : { x: this._posX, y: this._posY };
         context.beginPath();
         context.moveTo(from.x, from.y);
         context.lineTo(to.x, to.y);
         context.stroke();
+        context.restore();
+    }
+
+    _getPointClosestTo(x, y) {
+        if (this._angleOffset === 0) {
+            let firstPoint = this.firstItem.getPosition();
+            let secondPoint = this.secondItem.getPosition();
+            let dx = secondPoint.x - firstPoint.x;
+            let dy = secondPoint.y - firstPoint.y;
+            if (dx === 0 && dy === 0) {
+                return firstPoint;
+            }
+            var direction = ((x - firstPoint.x) * dx + (y - firstPoint.y) * dy) / (dx * dx + dy * dy);
+            let newX = firstPoint.x + direction * (secondPoint.x - firstPoint.x);
+            let newY = firstPoint.y + direction * (secondPoint.y - firstPoint.y);
+            let minX = Math.min(firstPoint.x, secondPoint.x);
+            let maxX = Math.max(firstPoint.x, secondPoint.x);
+            let minY = Math.min(firstPoint.y, secondPoint.y);
+            let maxY = Math.max(firstPoint.y, secondPoint.y);
+            return ({
+                x: newX > maxX ? maxX : newX < minX ? minX : newX,
+                y: newY > maxY ? maxY : newY < minY ? minY : newY
+            });
+        }
+        else {
+
+        }
     }
 }
 
@@ -183,7 +250,7 @@ export class ShapeFactory {
 
         this._shapesRegistry = {
             circle: Circle,
-            arrow: Arrow
+            circleConnector: CircleConnector
         };
     }
 
