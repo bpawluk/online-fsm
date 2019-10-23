@@ -108,11 +108,12 @@ export class Workspace {
         this._sandbox.sendMessage(this.REDRAW_CANVAS, this._items);
     }
 
-    getItemAt(point) {
+    getItemAt(data) {
+        let point = data.point;
         let items = this._items;
         for (let i = items.length - 1; i >= 0; i--) {
             let current = items[i];
-            if (current.contains && current.contains(point.x, point.y)) {
+            if (current.contains && current.contains(point.x, point.y) && (!data.predicate || data.predicate(current))) {
                 return current;
             }
         }
@@ -219,7 +220,7 @@ export class Workspace {
 
     _handlePointerDown(e) {
         let point = { x: e.x, y: e.y };
-        let elementClicked = this.getItemAt(point);
+        let elementClicked = this.getItemAt({ point: point });
         this.beginDrag({ item: elementClicked, point: point });
         this.selectItem(elementClicked, point);
     }
@@ -230,7 +231,7 @@ export class Workspace {
             this.moveItem({ item: this._draggedItem, point: point });
         }
         else {
-            let newHovered = this.getItemAt(point);
+            let newHovered = this.getItemAt({ point: point });
             if (this._hoveredItem || newHovered) {
                 this.hoverItem(newHovered, point);
             }
@@ -240,7 +241,7 @@ export class Workspace {
     _handlePointerUp(e) {
         let point = { x: e.x, y: e.y };
         this.endDrag(point);
-        let elementAtPoint = this.getItemAt(point);
+        let elementAtPoint = this.getItemAt({ point: point });
         if (this._selectedItem && elementAtPoint === this._selectedItem) {
             this._sandbox.raiseEvent(this.ITEM_PRESSED_EVENT, { point: point, item: elementAtPoint });
         }
@@ -248,7 +249,7 @@ export class Workspace {
 
     _handleDoubleClick(e) {
         let point = { x: e.x, y: e.y };
-        let doubleClickedItem = this.getItemAt(point);
+        let doubleClickedItem = this.getItemAt({ point: point });
         if (doubleClickedItem) {
             // TODO: Make accepting state
         } else {

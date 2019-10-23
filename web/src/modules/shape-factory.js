@@ -1,5 +1,49 @@
 'use strict'
 
+let MathHelper = {
+    arePointsColinear: function (a, b, c, tolerance = 0) {
+        return Math.abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) <= tolerance;
+    },
+
+    arePointsEqual: function (a, b) {
+        return a.x === b.x && a.y === b.y;
+    },
+
+    isPointCloseToSection: function (a, b, point, maxDistance = 0) {
+        let x = point.x;
+        let y = point.y;
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+
+        let closestPointOnLine = {};
+        if (dx === 0 && dy === 0) {
+            closestPointOnLine = a;
+        }
+        else {
+            let direction = ((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy);
+            closestPointOnLine.x = a.x + direction * (b.x - a.x);
+            closestPointOnLine.y = a.y + direction * (b.y - a.y);
+        }
+
+        if (!this.isPointOnSection(a, b, closestPointOnLine)) {
+            return false;
+        }
+        else {
+            dx = x - closestPointOnLine.x;
+            dy = y - closestPointOnLine.y;
+            return Math.sqrt(dx * dx + dy * dy) <= maxDistance;
+        }
+    },
+
+    isPointOnSection: function (a, b, point) {
+        let minX = Math.min(a.x, b.x);
+        let maxX = Math.max(a.x, b.x);
+        let minY = Math.min(a.y, b.y);
+        let maxY = Math.max(a.y, b.y);
+        return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY;
+    }
+}
+
 class Shape {
     constructor(config) {
         config = config || {};
@@ -61,6 +105,141 @@ class Shape {
         if (this._state !== 'selected') {
             this._state = 'default';
         }
+    }
+}
+
+class LineTo extends Shape {
+    constructor(config) {
+        config = config || {};
+        super(config);
+
+        if (!config.start) {
+            throw new Error('Line needs to have a starting point')
+        }
+
+        this._startPoint = config.start;
+        this._distanceToleration = 5;
+    }
+
+    setStart(point) {
+        this._startPoint = point;
+    }
+
+    contains(x, y) {
+        return MathHelper.isPointCloseToSection(this._startPoint, { x: this._posX, y: this._posY }, { x: x, y: y }, this._distanceToleration);
+    }
+
+    draw(context) {
+        context.save();
+        switch (this._state) {
+            case 'default':
+                context.strokeStyle = '#000000';
+                break;
+            case 'hovered':
+                context.strokeStyle = '#3BA7FF';
+                break;
+            case 'selected':
+                context.strokeStyle = '#336699';
+                break;
+            default:
+                throw new Error('There is no ' + this._state + ' state defined.');
+        }
+        context.beginPath();
+        context.moveTo(this._startPoint.x, this._startPoint.y);
+        context.lineTo(this._posX, this._posY);
+        context.stroke();
+        context.restore();
+    }
+
+    getBounds() {
+        return {
+            left: Math.min(this._posX, this._startPoint.x),
+            top: Math.max(this._posY, this._startPoint.y),
+            right: Math.max(this._posX, this._startPoint.x),
+            bottom: Math.min(this._posY, this._startPoint.y)
+        }
+    }
+}
+
+class Arc extends Shape {
+    constructor(config) {
+        config = config || {};
+        super(config);
+
+        if (!config.start || !config.end) {
+            throw new Error('Arc needs to have a start and end defined')
+        }
+
+        this._startPoint = config.start;
+        this._endPoint = config.end;
+
+        this._sagitta = null;
+        this._center = null;
+        this._radius = null;
+        this._startAngle = null;
+        this._endAngle = null;
+        this._calculateArc();
+
+        this._distanceToleration = 5;
+    }
+
+    setStart(point) {
+        if (!MathHelper.arePointsEqual(this._startPoint, point)) {
+            this._startPoint = point;
+            _calculateArc();
+        }
+    }
+
+    setEnd(point) {
+        if (!MathHelper.arePointsEqual(this._endPoint, point)) {
+            this._endPoint = point;
+            _calculateArc();
+        }
+    }
+
+    move(x, y) {
+        if (!MathHelper.arePointsEqual(this._endPoint, { x: x, y: y })) {
+            super.move(x, y);
+            _calculateArc(true);
+        }
+    }
+
+    contains(x, y) {
+        return false;
+    }
+
+    draw(context) {
+        context.save();
+        switch (this._state) {
+            case 'default':
+                context.strokeStyle = '#000000';
+                break;
+            case 'hovered':
+                context.strokeStyle = '#3BA7FF';
+                break;
+            case 'selected':
+                context.strokeStyle = '#336699';
+                break;
+            default:
+                throw new Error('There is no ' + this._state + ' state defined.');
+        }
+        context.beginPath();
+        context.arc(this._center.x, this._center.y, this._radius, this._startAngle, this._endAngle);
+        context.stroke();
+        context.restore();
+    }
+
+    getBounds() {
+        return {
+            left: Math.min(this._posX, this._startPoint.x),
+            top: Math.max(this._posY, this._startPoint.y),
+            right: Math.max(this._posX, this._startPoint.x),
+            bottom: Math.min(this._posY, this._startPoint.y)
+        }
+    }
+
+    _calculateArc(sagittaChanged = false){
+
     }
 }
 
@@ -145,117 +324,112 @@ class CircleConnector extends Shape {
         }
 
         this.isConnector = true;
-        this.isSet = false;
-        this.firstItem = config.first;
-        this.secondItem = config.second || config.first;
+        this.isSet = !!config.second;
 
-        this._angleOffset = 0;
-        this._containsToleration = 5;
-        this._angleOffsetToleration = 0.15;
+        this._isLinear = true;
+        this._firstItem = config.first;
+        this._secondItem = config.second || config.first;
+        this._innerShape = null;
+        this._updateInnerShape();
+
+        this._colinearTolerance = 15;
     }
 
     contains(x, y) {
-        if (this.isSet) {
-            let closestPoint = this._getPointClosestTo(x, y);
-            let dx = x - closestPoint.x;
-            let dy = y - closestPoint.y;
-            if (Math.sqrt(dx * dx + dy * dy) <= this._containsToleration) {
-                return true;
-            }
-        }
-        return false;
+        this._updateInnerShape();
+        return this._innerShape.contains(x, y);
     }
 
     move(x, y) {
+        super.move(x, y);
         if (this.isSet) {
-            let firstPoint = this.firstItem.getPosition();
-            //let secondPoint = this.secondItem.getPosition();
-            let vector = { x: x - firstPoint.x, y: y - firstPoint.y }
-            this._angleOffset = -Math.atan2(vector.y, -vector.x) + Math.PI;
-            console.log(this._angleOffset);
-            // //let firstVector = { x: secondPoint.x - firstPoint.x, y: secondPoint.y - firstPoint.y };
-            // let firstVector = { x: 1, y: 0 };
-            // let secondVector = { x: x - firstPoint.x, y: y - firstPoint.y };
-            // let dot = firstVector.x * secondVector.x + firstVector.y * secondVector.y;
-            // let det = firstVector.x * secondVector.y - firstVector.y * secondVector.x;
-            // this._angleOffset = Math.atan2(det, dot) + Math.PI;
-            // console.log(this._angleOffset);
-
-            // let firstVector = { x: secondPoint.x - firstPoint.x, y: secondPoint.y - firstPoint.y };
-            // let firstVectorLength = Math.sqrt(firstVector.x * firstVector.x + firstVector.y * firstVector.y);
-            // let secondVector = { x: x - firstPoint.x, y: y - firstPoint.y };
-            // let secondVectorLength = Math.sqrt(secondVector.x * secondVector.x + secondVector.y * secondVector.y);
-            // this._angleOffset = Math.acos((firstVector.x * secondVector.x + firstVector.y + secondVector.y) / (firstVectorLength * secondVectorLength));
-            // console.log(this._angleOffset);
-        }
-        else if (!this.secondItem) {
-            super.move(x, y);
+            this._isLinear = MathHelper.arePointsColinear(this._firstItem.getPosition(), this._secondItem.getPosition(),
+                { x: this._posX, y: this._posY }, this._colinearTolerance);
         }
     }
 
     setEndTemporarily(item) {
-        this.secondItem = item;
+        this._secondItem = item;
     }
 
     setEnd(item) {
-        this.secondItem = item;
+        this._secondItem = item;
         this.isSet = true;
     }
 
     draw(context) {
-        context.save();
-        switch (this._state) {
-            case 'default':
-                context.strokeStyle = '#000000';
-                break;
-            case 'hovered':
-                context.strokeStyle = '#3BA7FF';
-                break;
-            case 'selected':
-                context.strokeStyle = '#336699';
-                break;
-            default:
-                throw new Error('There is no ' + this._state + ' state defined.');
-        }
-        let from = this.firstItem.getPosition();
-        let to = this.secondItem ? this.secondItem.getPosition() : { x: this._posX, y: this._posY };
-        context.beginPath();
-        if (this._angleOffset <= this._angleOffsetToleration) {
-            context.moveTo(from.x, from.y);
-            context.lineTo(to.x, to.y);
-        }
-        else {
-            let x = from.x + this.firstItem.getRadius() * Math.cos(this._angleOffset);
-            let y = from.y + this.firstItem.getRadius() * Math.sin(this._angleOffset);
-            context.arc(x, y, 5, 0, 2 * Math.PI);
-        }
-        context.stroke();
-        context.restore();
+        this._updateInnerShape();
+        this._innerShape.draw(context);
     }
 
-    _getPointClosestTo(x, y) {
-        if (this._angleOffset <= this._angleOffsetToleration) {
-            let firstPoint = this.firstItem.getPosition();
-            let secondPoint = this.secondItem.getPosition();
-            let dx = secondPoint.x - firstPoint.x;
-            let dy = secondPoint.y - firstPoint.y;
-            if (dx === 0 && dy === 0) {
-                return firstPoint;
-            }
-            var direction = ((x - firstPoint.x) * dx + (y - firstPoint.y) * dy) / (dx * dx + dy * dy);
-            let newX = firstPoint.x + direction * (secondPoint.x - firstPoint.x);
-            let newY = firstPoint.y + direction * (secondPoint.y - firstPoint.y);
-            let minX = Math.min(firstPoint.x, secondPoint.x);
-            let maxX = Math.max(firstPoint.x, secondPoint.x);
-            let minY = Math.min(firstPoint.y, secondPoint.y);
-            let maxY = Math.max(firstPoint.y, secondPoint.y);
-            return ({
-                x: newX > maxX ? maxX : newX < minX ? minX : newX,
-                y: newY > maxY ? maxY : newY < minY ? minY : newY
-            });
+    select(pointerPosition) {
+        super.select(pointerPosition);
+        this._innerShape.select(pointerPosition);
+    }
+
+    unselect() {
+        super.unselect();
+        this._innerShape.unselect();
+    }
+
+    pointerOver() {
+        super.pointerOver();
+        this._innerShape.pointerOver();
+    }
+
+    pointerOut() {
+        super.pointerOut();
+        this._innerShape.pointerOut();
+    }
+
+    _connectLine(from, to) {
+        if (this._innerShape instanceof LineTo) {
+            this._innerShape.setStart(from);
+            this._innerShape.move(to.x, to.y);
         }
         else {
+            this._innerShape = new LineTo({
+                start: from,
+                x: to.x,
+                y: to.y,
+                isMovable: true
+            });
+        }
+    }
 
+    _connectArc(from, to) {
+        if (this._innerShape instanceof Arc) {
+            this._innerShape.setStart(from);
+            this._innerShape.setEnd(to);
+            this._innerShape.move(this._posX, this._posY);
+        }
+        else {
+            this._innerShape = new Arc({
+                start: from,
+                end: to,
+                x: this._posX,
+                y: this._posY,
+                isMovable: true
+            });
+        }
+    }
+
+    _updateInnerShape() {
+        if (this.isSet) {
+            if (this._isLinear) {
+                this._connectLine(this._firstItem.getPosition(), this._secondItem.getPosition());
+            }
+            else {
+                this._connectArc(this._firstItem.getPosition(), this._secondItem.getPosition());
+            }
+        }
+        else {
+            if (this._secondItem) {
+                this._connectLine(this._firstItem.getPosition(), this._secondItem.getPosition());
+            }
+            else {
+                this._connectLine(this._firstItem.getPosition(), { x: this._posX, y: this._posY });
+            }
         }
     }
 }

@@ -56,8 +56,13 @@ export class ItemConnector {
 
     onItemMoved(e) {
         if (e.item.isConnector && !e.item.isSet) {
-            let itemAt = this._sandbox.sendMessage(this.GET_ITEM_AT, e.point);
-            if (itemAt && itemAt.isConnectible) {
+            let itemAt = this._sandbox.sendMessage(this.GET_ITEM_AT, {
+                point: e.point, 
+                predicate: function (item) {
+                    return item.isConnectible && !item.isConnector;
+                }
+            });
+            if (itemAt) {
                 e.item.setEndTemporarily(itemAt);
             }
             else {
@@ -68,8 +73,13 @@ export class ItemConnector {
 
     onDragEnded(e) {
         if (e.item.isConnector && !e.item.isSet) {
-            let itemAt = this._sandbox.sendMessage(this.GET_ITEM_AT, e.point);
-            if (itemAt && itemAt.isConnectible) {
+            let itemAt = this._sandbox.sendMessage(this.GET_ITEM_AT, {
+                point: e.point, 
+                predicate: function (item) {
+                    return item.isConnectible && !item.isConnector;
+                }
+            });
+            if (itemAt) {
                 e.item.setEnd(itemAt);
             }
             else {
