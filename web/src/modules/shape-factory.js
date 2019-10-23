@@ -151,6 +151,7 @@ class CircleConnector extends Shape {
 
         this._angleOffset = 0;
         this._containsToleration = 5;
+        this._angleOffsetToleration = 0.15;
     }
 
     contains(x, y) {
@@ -167,7 +168,25 @@ class CircleConnector extends Shape {
 
     move(x, y) {
         if (this.isSet) {
-            
+            let firstPoint = this.firstItem.getPosition();
+            //let secondPoint = this.secondItem.getPosition();
+            let vector = { x: x - firstPoint.x, y: y - firstPoint.y }
+            this._angleOffset = -Math.atan2(vector.y, -vector.x) + Math.PI;
+            console.log(this._angleOffset);
+            // //let firstVector = { x: secondPoint.x - firstPoint.x, y: secondPoint.y - firstPoint.y };
+            // let firstVector = { x: 1, y: 0 };
+            // let secondVector = { x: x - firstPoint.x, y: y - firstPoint.y };
+            // let dot = firstVector.x * secondVector.x + firstVector.y * secondVector.y;
+            // let det = firstVector.x * secondVector.y - firstVector.y * secondVector.x;
+            // this._angleOffset = Math.atan2(det, dot) + Math.PI;
+            // console.log(this._angleOffset);
+
+            // let firstVector = { x: secondPoint.x - firstPoint.x, y: secondPoint.y - firstPoint.y };
+            // let firstVectorLength = Math.sqrt(firstVector.x * firstVector.x + firstVector.y * firstVector.y);
+            // let secondVector = { x: x - firstPoint.x, y: y - firstPoint.y };
+            // let secondVectorLength = Math.sqrt(secondVector.x * secondVector.x + secondVector.y * secondVector.y);
+            // this._angleOffset = Math.acos((firstVector.x * secondVector.x + firstVector.y + secondVector.y) / (firstVectorLength * secondVectorLength));
+            // console.log(this._angleOffset);
         }
         else if (!this.secondItem) {
             super.move(x, y);
@@ -201,14 +220,21 @@ class CircleConnector extends Shape {
         let from = this.firstItem.getPosition();
         let to = this.secondItem ? this.secondItem.getPosition() : { x: this._posX, y: this._posY };
         context.beginPath();
-        context.moveTo(from.x, from.y);
-        context.lineTo(to.x, to.y);
+        if (this._angleOffset <= this._angleOffsetToleration) {
+            context.moveTo(from.x, from.y);
+            context.lineTo(to.x, to.y);
+        }
+        else {
+            let x = from.x + this.firstItem.getRadius() * Math.cos(this._angleOffset);
+            let y = from.y + this.firstItem.getRadius() * Math.sin(this._angleOffset);
+            context.arc(x, y, 5, 0, 2 * Math.PI);
+        }
         context.stroke();
         context.restore();
     }
 
     _getPointClosestTo(x, y) {
-        if (this._angleOffset === 0) {
+        if (this._angleOffset <= this._angleOffsetToleration) {
             let firstPoint = this.firstItem.getPosition();
             let secondPoint = this.secondItem.getPosition();
             let dx = secondPoint.x - firstPoint.x;
