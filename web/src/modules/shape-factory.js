@@ -1,7 +1,14 @@
 'use strict'
 
 let MathHelper = {
-    arePointsColinear: function (a, b, c, tolerance = 0) {
+    distance: function (a, b) {
+        let vectorX = b.x - a.x;
+        let vectorY = b.y - a.y
+        return Math.sqrt(vectorX * vectorX + vectorY * vectorY);
+    },
+
+    arePointsColinear: function (a, b, c, tolerance) {
+        tolerance = tolerance === undefined ? 0.01 : tolerance;
         return Math.abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) <= tolerance;
     },
 
@@ -9,7 +16,8 @@ let MathHelper = {
         return a.x === b.x && a.y === b.y;
     },
 
-    isPointCloseToSection: function (a, b, point, maxDistance = 0) {
+    isPointCloseToSection: function (a, b, point, maxDistance) {
+        maxDistance = maxDistance === undefined ? 0.01 : maxDistance;
         let x = point.x;
         let y = point.y;
         let dx = b.x - a.x;
@@ -41,6 +49,20 @@ let MathHelper = {
         let minY = Math.min(a.y, b.y);
         let maxY = Math.max(a.y, b.y);
         return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY;
+    },
+
+    centerOfCircleFrom3Points: function (a, b, c) {
+        let xa = a.x - c.x;
+        let ya = a.y - c.y;
+        let xb = b.x - c.x;
+        let yb = b.y - c.y;
+        let det = 2 * (xa * yb - xb * ya);
+        let tempA = xa * xa + ya * ya;
+        let tempB = xb * xb + yb * yb;
+        let center = {};
+        center.x = ((yb * tempA - ya * tempB) / det) + c.x;
+        center.y = ((xa * tempB - xb * tempA) / det) + c.y;
+        return center;
     }
 }
 
@@ -186,21 +208,21 @@ class Arc extends Shape {
     setStart(point) {
         if (!MathHelper.arePointsEqual(this._startPoint, point)) {
             this._startPoint = point;
-            _calculateArc();
+            this._calculateArc();
         }
     }
 
     setEnd(point) {
         if (!MathHelper.arePointsEqual(this._endPoint, point)) {
             this._endPoint = point;
-            _calculateArc();
+            this._calculateArc();
         }
     }
 
     move(x, y) {
-        if (!MathHelper.arePointsEqual(this._endPoint, { x: x, y: y })) {
+        if (!MathHelper.arePointsEqual({x: this._posX, y: this._posY}, { x: x, y: y })) {
             super.move(x, y);
-            _calculateArc(true);
+            this._calculateArc(true);
         }
     }
 
@@ -224,7 +246,8 @@ class Arc extends Shape {
                 throw new Error('There is no ' + this._state + ' state defined.');
         }
         context.beginPath();
-        context.arc(this._center.x, this._center.y, this._radius, this._startAngle, this._endAngle);
+        context.arc(this._center.x, this._center.y, this._radius, 0, 2 * Math.PI);
+        //context.arc(this._center.x, this._center.y, this._radius, this._startAngle, this._endAngle);
         context.stroke();
         context.restore();
     }
@@ -238,8 +261,9 @@ class Arc extends Shape {
         }
     }
 
-    _calculateArc(sagittaChanged = false){
-
+    _calculateArc(sagittaChanged = false) {
+        this._center = MathHelper.centerOfCircleFrom3Points(this._startPoint, this._endPoint, {x: this._posX, y: this._posY});
+        this._radius = MathHelper.distance(this._center, this._startPoint);
     }
 }
 
@@ -332,7 +356,7 @@ class CircleConnector extends Shape {
         this._innerShape = null;
         this._updateInnerShape();
 
-        this._colinearTolerance = 15;
+        this._colinearTolerance = 5;
     }
 
     contains(x, y) {
@@ -343,7 +367,7 @@ class CircleConnector extends Shape {
     move(x, y) {
         super.move(x, y);
         if (this.isSet) {
-            this._isLinear = MathHelper.arePointsColinear(this._firstItem.getPosition(), this._secondItem.getPosition(),
+            this._isLinear = MathHelper.isPointCloseToSection(this._firstItem.getPosition(), this._secondItem.getPosition(),
                 { x: this._posX, y: this._posY }, this._colinearTolerance);
         }
     }
