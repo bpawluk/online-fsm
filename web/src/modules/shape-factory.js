@@ -188,46 +188,33 @@ class Arc extends Shape {
         config = config || {};
         super(config);
 
-        if (!config.start || !config.end) {
-            throw new Error('Arc needs to have a start and end defined')
-        }
-
-        this._startPoint = config.start;
-        this._endPoint = config.end;
-
-        this._sagitta = null;
-        this._center = null;
-        this._radius = null;
-        this._startAngle = null;
-        this._endAngle = null;
-        this._calculateArc();
+        this._radius = config.radius === undefined ? 0 : config.radius;
+        this._startAngle = config.start === undefined ? 0 : config.start;
+        this._endAngle = config.end === undefined ? 0 : config.end;
+        this._reverse = config.reverse === undefined ? 0 : config.reverse;
 
         this._distanceToleration = 5;
     }
 
-    setStart(point) {
-        if (!MathHelper.arePointsEqual(this._startPoint, point)) {
-            this._startPoint = point;
-            this._calculateArc();
-        }
+    setStart(angle) {
+        this._startAngle = angle;
     }
 
-    setEnd(point) {
-        if (!MathHelper.arePointsEqual(this._endPoint, point)) {
-            this._endPoint = point;
-            this._calculateArc();
-        }
+    setEnd(angle) {
+        this._endAngle = angle;
     }
 
-    move(x, y) {
-        if (!MathHelper.arePointsEqual({x: this._posX, y: this._posY}, { x: x, y: y })) {
-            super.move(x, y);
-            this._calculateArc(true);
-        }
+    setRadius(radius) {
+        this._radius = radius;
+    }
+
+    setReverse(reverse) {
+        this._reverse = reverse;
     }
 
     contains(x, y) {
-        return false;
+        // to be changed
+        return Math.abs(MathHelper.distance({ x: this._posX, y: this._posY }, { x: x, y: y }) - this._radius) <= this._distanceToleration;
     }
 
     draw(context) {
@@ -246,24 +233,9 @@ class Arc extends Shape {
                 throw new Error('There is no ' + this._state + ' state defined.');
         }
         context.beginPath();
-        context.arc(this._center.x, this._center.y, this._radius, 0, 2 * Math.PI);
-        //context.arc(this._center.x, this._center.y, this._radius, this._startAngle, this._endAngle);
+        context.arc(this._posX, this._posY, this._radius, this._startAngle, this._endAngle, this._reverse);
         context.stroke();
         context.restore();
-    }
-
-    getBounds() {
-        return {
-            left: Math.min(this._posX, this._startPoint.x),
-            top: Math.max(this._posY, this._startPoint.y),
-            right: Math.max(this._posX, this._startPoint.x),
-            bottom: Math.min(this._posY, this._startPoint.y)
-        }
-    }
-
-    _calculateArc(sagittaChanged = false) {
-        this._center = MathHelper.centerOfCircleFrom3Points(this._startPoint, this._endPoint, {x: this._posX, y: this._posY});
-        this._radius = MathHelper.distance(this._center, this._startPoint);
     }
 }
 
@@ -353,6 +325,7 @@ class CircleConnector extends Shape {
         this._isLinear = true;
         this._firstItem = config.first;
         this._secondItem = config.second || config.first;
+        this._lastData = null;
         this._innerShape = null;
         this._updateInnerShape();
 
@@ -406,53 +379,86 @@ class CircleConnector extends Shape {
         this._innerShape.pointerOut();
     }
 
-    _connectLine(from, to) {
-        if (this._innerShape instanceof LineTo) {
-            this._innerShape.setStart(from);
-            this._innerShape.move(to.x, to.y);
-        }
-        else {
+    _connectLine(endPoint) {
+        let from = this._firstItem.getPosition();
+        let to = endPoint ? endPoint : this._secondItem.getPosition();
+        if (!(this._innerShape instanceof LineTo)) {
             this._innerShape = new LineTo({
                 start: from,
                 x: to.x,
                 y: to.y,
-                isMovable: true
+                isMovable: true, isSelectable: true,
+                isHoverable: true, isPullable: false
             });
+            this._innerShape._state = this._state;
+            this._lastData = { from: from, to: to, position: { x: this._posX, y: this._posY } };
+        }
+        else if (!this._lastData || !(MathHelper.arePointsEqual(this._lastData.from, from)
+            && MathHelper.arePointsEqual(this._lastData.to, to))) {
+            this._innerShape.setStart(from);
+            this._innerShape.move(to.x, to.y);
+            this._lastData = { from: from, to: to, position: { x: this._posX, y: this._posY } };
         }
     }
 
-    _connectArc(from, to) {
-        if (this._innerShape instanceof Arc) {
-            this._innerShape.setStart(from);
-            this._innerShape.setEnd(to);
-            this._innerShape.move(this._posX, this._posY);
-        }
-        else {
+    _connectArc() {
+        if (!(this._innerShape instanceof Arc)) {
+            let arcData = this._calculateArcData();
             this._innerShape = new Arc({
-                start: from,
-                end: to,
-                x: this._posX,
-                y: this._posY,
-                isMovable: true
+                start: arcData.startAngle,
+                end: arcData.endAngle,
+                x: arcData.center.x,
+                y: arcData.center.y,
+                radius: arcData.radius,
+                reverse: arcData.reverse,
+                isMovable: true, isSelectable: true,
+                isHoverable: true, isPullable: false
             });
+            this._innerShape._state = this._state;
         }
+        else if (!this._lastData || !(MathHelper.arePointsEqual(this._lastData.from, this._firstItem.getPosition())
+            && MathHelper.arePointsEqual(this._lastData.to, this._secondItem.getPosition())
+            && MathHelper.arePointsEqual(this._lastData.position, { x: this._posX, y: this._posY }))) {
+            let arcData = this._calculateArcData();
+            this._innerShape.move(arcData.center.x, arcData.center.y);
+            this._innerShape.setStart(arcData.startAngle);
+            this._innerShape.setEnd(arcData.endAngle);
+            this._innerShape.setRadius(arcData.radius);
+            this._innerShape.setReverse(arcData.reverse);
+        }
+    }
+
+    _calculateArcData() {
+        let arcData = {};
+        let from = this._firstItem.getPosition();
+        let to = this._secondItem.getPosition();
+        arcData.center = MathHelper.centerOfCircleFrom3Points(from, to, { x: this._posX, y: this._posY });
+        arcData.radius = MathHelper.distance(arcData.center, from);
+        let v1 = { x: this._posX - from.x, y: this._posY - from.y };
+        let v2 = { x: this._posX - to.x, y: this._posY - to.y };
+        arcData.reverse = (v1.x * v2.y - v2.x * v1.y) > 0;
+        let scale = arcData.reverse ? 1 : -1;
+        arcData.startAngle = Math.atan2(from.y - arcData.center.y, from.x - arcData.center.x) - scale * this._firstItem.getRadius() / arcData.radius;
+        arcData.endAngle = Math.atan2(to.y - arcData.center.y, to.x - arcData.center.x) + scale * this._secondItem.getRadius() / arcData.radius;
+        this._lastData = { from: from, to: to, position: { x: this._posX, y: this._posY } };
+        return arcData;
     }
 
     _updateInnerShape() {
         if (this.isSet) {
             if (this._isLinear) {
-                this._connectLine(this._firstItem.getPosition(), this._secondItem.getPosition());
+                this._connectLine();
             }
             else {
-                this._connectArc(this._firstItem.getPosition(), this._secondItem.getPosition());
+                this._connectArc();
             }
         }
         else {
             if (this._secondItem) {
-                this._connectLine(this._firstItem.getPosition(), this._secondItem.getPosition());
+                this._connectLine();
             }
             else {
-                this._connectLine(this._firstItem.getPosition(), { x: this._posX, y: this._posY });
+                this._connectLine({ x: this._posX, y: this._posY });
             }
         }
     }
