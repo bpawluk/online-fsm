@@ -113,7 +113,7 @@ export class Workspace {
         let items = this._items;
         for (let i = items.length - 1; i >= 0; i--) {
             let current = items[i];
-            if (current.contains && current.contains(point.x, point.y) && (!data.predicate || data.predicate(current))) {
+            if (current.contains && current.contains(point) && (!data.predicate || data.predicate(current))) {
                 return current;
             }
         }
@@ -144,7 +144,7 @@ export class Workspace {
         let item = data.item;
         let point = data.point;
         if (item && this._items.includes(item) && item.isMovable) {
-            item.move(point.x, point.y);
+            item.move(point);
             this._sandbox.sendMessage(this.REDRAW_CANVAS, this._items);
             this._sandbox.raiseEvent(this.ITEM_MOVED_EVENT, { item: item, point: point, source: data.sender });
         }
@@ -256,7 +256,7 @@ export class Workspace {
             let newItem = this._sandbox.sendMessage(this.CREATE_SHAPE, {
                 shape: 'circle',
                 config: {
-                    x: e.x, y: e.y, isHoverable: true,
+                    position: point, isHoverable: true,
                     isMovable: true, isPullable: true,
                     isSelectable: true, isConnectible: true
                 }

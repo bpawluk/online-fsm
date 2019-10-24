@@ -43,13 +43,13 @@ export class ItemConnector {
     onItemPressed(e) {
         if (e.item.isConnectible) {
             let newConnector = this._getConnectorFor(e.item, {
-                first: e.item, x: e.point.x, y: e.point.y,
+                first: e.item, position: e.point,
                 isMovable: true, isSelectable: true,
                 isHoverable: true, isPullable: false
             });
             if (newConnector) {
                 this._sandbox.sendMessage(this.ADD_ITEM, newConnector);
-                this._sandbox.sendMessage(this.BEGIN_DRAG, { item: newConnector, point: { x: e.x, y: e.y } });
+                this._sandbox.sendMessage(this.BEGIN_DRAG, { item: newConnector, point: e.point });
             }
         }
     }
