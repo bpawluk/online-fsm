@@ -45,7 +45,7 @@ export class ItemConnector {
             let newConnector = this._getConnectorFor(e.item, {
                 first: e.item, position: e.point,
                 isMovable: true, isSelectable: true,
-                isHoverable: true, isPullable: false
+                isHoverable: true, isPullable: true
             });
             if (newConnector) {
                 this._sandbox.sendMessage(this.ADD_ITEM, newConnector);

@@ -69,6 +69,47 @@ let MathHelper = {
         return dx * dx + dy * dy <= radius * radius
     },
 
+    getPointOnCircleGivenAngle: function (center, radius, angle) {
+        return {
+            x: center.x + radius * Math.cos(angle),
+            y: center.y + radius * Math.sin(angle)
+        }
+    },
+
+    getNormalVector: function (a, b, reversed) {
+        if (this.arePointsEqual(a, b)) {
+            throw new Error("Cannot create normal vector from equal points");
+        }
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let length = this.distance(a, b);
+        if (reversed) {
+            return {
+                x: -dy / length,
+                y: dx / length
+            }
+        }
+        else {
+            return {
+                x: dy / length,
+                y: -dx / length
+            }
+        }
+    },
+
+    getUnitVector: function (a, b) {
+        if (this.arePointsEqual(a, b)) {
+            throw new Error("Cannot create vector from equal points");
+        }
+        let vector = {};
+        vector.x = b.x - a.x;
+        vector.y = b.y - a.y;
+        let length = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+        vector.x = vector.x / length;
+        vector.y = vector.y / length;
+        return vector;
+    },
+
     centerOfCircleFrom3Points: function (a, b, c) {
         let xa = a.x - c.x;
         let ya = a.y - c.y;
@@ -81,6 +122,20 @@ let MathHelper = {
         center.x = ((yb * tempA - ya * tempB) / det) + c.x;
         center.y = ((xa * tempB - xb * tempA) / det) + c.y;
         return center;
+    },
+
+    translateVector: function (vector, point) {
+        return {
+            x: vector.x + point.x,
+            y: vector.y + point.y
+        }
+    },
+
+    vecByScalMul: function (vector, scalar) {
+        return {
+            x: vector.x * scalar,
+            y: vector.y * scalar
+        }
     }
 }
 
@@ -231,8 +286,19 @@ class Arc extends Shape {
     }
 
     contains(point) {
-        // to be changed
-        return Math.abs(MathHelper.distance(this._position, point) - this._radius) <= this._distanceToleration;
+        let onCircle = Math.abs(MathHelper.distance(this._position, point) - this._radius) <= this._distanceToleration;
+        if (onCircle) {
+            let direction = { x: point.x - this._position.x, y: point.y - this._position.y };
+            let angle = Math.atan2(direction.y, direction.x);
+            if (this._startAngle <= this._endAngle) {
+                let contains = this._startAngle <= angle && angle <= this._endAngle;
+                return this._reverse ? !contains : contains;
+            }
+            else {
+                let contains = angle >= this._startAngle || angle <= this._endAngle;
+                return this._reverse ? !contains : contains;
+            }
+        } else return false;
     }
 
     draw(context) {
@@ -329,6 +395,8 @@ class CircleConnector extends Shape {
         this._isLinear = config.isLinear === undefined ? true : config.isLinear;
         this._firstItem = config.first;
         this._secondItem = config.second || config.first;
+        this._sagitta = null;
+        this._isReversed = null;
         this._lastData = null;
         this._innerShape = null;
         this._updateInnerShape();
@@ -386,7 +454,17 @@ class CircleConnector extends Shape {
     _connectLine(endPoint) {
         let from = this._firstItem.getPosition();
         let to = endPoint ? endPoint : this._secondItem.getPosition();
+
         if (!(this._innerShape instanceof LineTo)) {
+            if (!MathHelper.arePointsEqual(from, to)) {
+                let newfrom = MathHelper.translateVector(MathHelper.vecByScalMul(MathHelper.getUnitVector(from, to), this._firstItem.getRadius()), this._firstItem.getPosition());
+                if (this._secondItem) {
+                    let newTo = MathHelper.translateVector(MathHelper.vecByScalMul(MathHelper.getUnitVector(to, from), this._secondItem.getRadius()), this._secondItem.getPosition());
+                    to = newTo;
+                }
+                from = newfrom;
+            }
+
             this._innerShape = new LineTo({
                 start: from,
                 position: to,
@@ -394,10 +472,22 @@ class CircleConnector extends Shape {
                 isHoverable: true, isPullable: false
             });
             this._innerShape._state = this._state;
+
             this._lastData = { from: from, to: to, position: this.getPosition() };
         }
+
         else if (!this._lastData || !(MathHelper.arePointsEqual(this._lastData.from, from)
             && MathHelper.arePointsEqual(this._lastData.to, to))) {
+
+            if (!MathHelper.arePointsEqual(from, to)) {
+                let newfrom = MathHelper.translateVector(MathHelper.vecByScalMul(MathHelper.getUnitVector(from, to), this._firstItem.getRadius()), this._firstItem.getPosition());
+                if (this._secondItem) {
+                    let newTo = MathHelper.translateVector(MathHelper.vecByScalMul(MathHelper.getUnitVector(to, from), this._secondItem.getRadius()), this._secondItem.getPosition());
+                    to = newTo;
+                }
+                from = newfrom;
+            }
+
             this._innerShape.setStart(from);
             this._innerShape.move(to);
             this._lastData = { from: from, to: to, position: this.getPosition() };
@@ -418,10 +508,12 @@ class CircleConnector extends Shape {
             });
             this._innerShape._state = this._state;
         }
+
         else if (!this._lastData || !(MathHelper.arePointsEqual(this._lastData.from, this._firstItem.getPosition())
             && MathHelper.arePointsEqual(this._lastData.to, this._secondItem.getPosition())
             && MathHelper.arePointsEqual(this._lastData.position, this.getPosition()))) {
-            let arcData = this._calculateArcData();
+
+            let arcData = this._calculateArcData(MathHelper.arePointsEqual(this._lastData.position, this.getPosition()));
             this._innerShape.move(arcData.center);
             this._innerShape.setStart(arcData.startAngle);
             this._innerShape.setEnd(arcData.endAngle);
@@ -430,18 +522,51 @@ class CircleConnector extends Shape {
         }
     }
 
-    _calculateArcData() {
+    _calculateArcData(keepAnchor) {
         let arcData = {};
         let from = this._firstItem.getPosition();
         let to = this._secondItem.getPosition();
-        arcData.center = MathHelper.centerOfCircleFrom3Points(from, to, this.getPosition());
-        arcData.radius = MathHelper.distance(arcData.center, from);
-        let v1 = { x: this._position.x - from.x, y: this._position.y - from.y };
-        let v2 = { x: this._position.x - to.x, y: this._position.y - to.y };
-        arcData.reverse = (v1.x * v2.y - v2.x * v1.y) > 0;
-        let scale = arcData.reverse ? 1 : -1;
-        arcData.startAngle = Math.atan2(from.y - arcData.center.y, from.x - arcData.center.x) - scale * this._firstItem.getRadius() / arcData.radius;
-        arcData.endAngle = Math.atan2(to.y - arcData.center.y, to.x - arcData.center.x) + scale * this._secondItem.getRadius() / arcData.radius;
+        let midPoint = {
+            x: (from.x + to.x) / 2,
+            y: (from.y + to.y) / 2
+        }
+
+        if (MathHelper.arePointsEqual(from, to)) {
+            arcData = {
+                center: { x: 0, y: 0 },
+                startAngle: 0,
+                endAngle: 0,
+                radius: 0,
+            }
+        }
+        else {
+            if (keepAnchor && this._sagitta) {
+                let normal = MathHelper.getNormalVector(from, to, this._isReversed);
+                let position = MathHelper.translateVector(MathHelper.vecByScalMul(normal, this._sagitta), midPoint);
+                arcData.center = MathHelper.centerOfCircleFrom3Points(from, to, position);
+            }
+            else {
+                arcData.center = MathHelper.centerOfCircleFrom3Points(from, to, this.getPosition());
+                let v1 = { x: this._position.x - from.x, y: this._position.y - from.y };
+                let v2 = { x: this._position.x - to.x, y: this._position.y - to.y };
+                this._isReversed = (v1.x * v2.y - v2.x * v1.y) > 0;
+            }
+
+            arcData.radius = MathHelper.distance(arcData.center, from);
+            arcData.reverse = this._isReversed;
+
+            let scale = this._isReversed ? 1 : -1;
+            arcData.startAngle = Math.atan2(from.y - arcData.center.y, from.x - arcData.center.x) - 2 * scale * Math.asin(this._firstItem.getRadius() / (2 * arcData.radius));
+            arcData.endAngle = Math.atan2(to.y - arcData.center.y, to.x - arcData.center.x) + 2 * scale * Math.asin(this._secondItem.getRadius() / (2 * arcData.radius));
+
+            if (!keepAnchor) {
+                let direction = MathHelper.getNormalVector(from, to, this._isReversed);
+                let midAngle = Math.atan2(direction.y, direction.x);
+                let temp = MathHelper.getPointOnCircleGivenAngle(arcData.center, arcData.radius, midAngle);
+                this._sagitta = MathHelper.distance(midPoint, temp);
+            }
+        }
+
         this._lastData = { from: from, to: to, position: this.getPosition() };
         return arcData;
     }
