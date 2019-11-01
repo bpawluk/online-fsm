@@ -49,6 +49,10 @@ export class Interaction {
         element.addEventListener('mousedown', this._handleMouseDown.bind(this));
         element.addEventListener('mousemove', this._handleMouseMove.bind(this));
         element.addEventListener('mouseup', this._handleMouseUp.bind(this));
+        element.addEventListener("touchstart", this._handleTouchStart.bind(this));
+        element.addEventListener("touchend", this._handleTouchEnd.bind(this));
+        element.addEventListener("touchcancel", this._handleTouchCancel.bind(this));
+        element.addEventListener("touchmove", this._handleTouchMove.bind(this));
     }
 
     stop() {
@@ -91,5 +95,30 @@ export class Interaction {
     _handleMouseUp(e) {
         var point = this._getPointInElement(e.target, e.clientX, e.clientY);
         this._sandbox.raiseEvent(this.POINTER_UP_EVENT, { target: e.target, x: point.x, y: point.y });
+    }
+
+    _handleTouchStart(e) {
+        let touch = e.changedTouches[0];
+        var point = this._getPointInElement(e.target, touch.clientX, touch.clientY);
+        this._sandbox.raiseEvent(this.POINTER_DOWN_EVENT, { target: e.target, x: point.x, y: point.y });
+    }
+
+    _handleTouchEnd(e) {
+        let touch = e.changedTouches[0];
+        var point = this._getPointInElement(e.target, touch.clientX, touch.clientY);
+        this._sandbox.raiseEvent(this.POINTER_UP_EVENT, { target: e.target, x: point.x, y: point.y });
+    }
+
+    _handleTouchCancel(e) {
+        let touch = e.changedTouches[0];
+        var point = this._getPointInElement(e.target, touch.clientX, touch.clientY);
+        this._sandbox.raiseEvent(this.POINTER_UP_EVENT, { target: e.target, x: point.x, y: point.y });
+    }
+
+    _handleTouchMove(e) {
+        e.preventDefault()
+        let touch = e.changedTouches[0];
+        var point = this._getPointInElement(e.target, touch.clientX, touch.clientY);
+        this._sandbox.raiseEvent(this.POINTER_MOVE_EVENT, { target: e.target, x: point.x, y: point.y });
     }
 }

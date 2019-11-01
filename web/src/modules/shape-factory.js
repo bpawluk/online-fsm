@@ -97,13 +97,18 @@ let MathHelper = {
         }
     },
 
-    getUnitVector: function (a, b) {
+    getVector: function (a, b) {
         if (this.arePointsEqual(a, b)) {
             throw new Error("Cannot create vector from equal points");
         }
         let vector = {};
         vector.x = b.x - a.x;
         vector.y = b.y - a.y;
+        return vector;
+    },
+
+    getUnitVector: function (a, b) {
+        let vector = this.getVector(a, b);
         let length = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
         vector.x = vector.x / length;
         vector.y = vector.y / length;
@@ -215,6 +220,10 @@ class LineTo extends Shape {
         this._distanceToleration = 5;
     }
 
+    getStart() {
+        return Object.assign({}, this._startPoint);
+    }
+
     setStart(point) {
         this._startPoint.x = point.x;
         this._startPoint.y = point.y;
@@ -244,15 +253,6 @@ class LineTo extends Shape {
         context.lineTo(this._position.x, this._position.y);
         context.stroke();
         context.restore();
-    }
-
-    getBounds() {
-        return {
-            left: Math.min(this._position.x, this._startPoint.x),
-            top: Math.max(this._position.y, this._startPoint.y),
-            right: Math.max(this._position.x, this._startPoint.x),
-            bottom: Math.min(this._position.y, this._startPoint.y)
-        }
     }
 }
 
@@ -380,6 +380,61 @@ class Circle extends Shape {
     }
 }
 
+class ArrowTip extends Shape {
+    constructor(config) {
+        config = config || {};
+        super(config);
+        this._angle = config.angle === undefined ? 0 : config.angle;
+        this._height = config.height === undefined ? 10 : config.height;
+        this._width = config.width === undefined ? 10 : config.width;
+    }
+
+    setAngle(angle) {
+        this._angle = angle;
+    }
+
+    draw(context) {
+        context.save();
+        switch (this._state) {
+            case 'default':
+                context.strokeStyle = '#000000';
+                context.fillStyle = '#000000';
+                break;
+            case 'hovered':
+                context.strokeStyle = '#3BA7FF';
+                context.fillStyle = '#3BA7FF';
+                break;
+            case 'selected':
+                context.strokeStyle = '#336699';
+                context.fillStyle = '#336699';
+                break;
+            default:
+                throw new Error('There is no ' + this._state + ' state defined.');
+        }
+        context.beginPath();
+        let vertices = this._calculateVertices();
+        context.moveTo(vertices.top.x, vertices.top.y);
+        context.lineTo(vertices.left.x, vertices.left.y);
+        context.lineTo(vertices.right.x, vertices.right.y);
+        context.fill();
+        context.stroke();
+        context.restore();
+    }
+
+    _calculateVertices() {
+        let top = this._position;
+        let bottom = {
+            x: -Math.cos(this._angle) * this._height + top.x,
+            y: -Math.sin(this._angle) * this._height + top.y
+        };
+        let firstNormal = MathHelper.getNormalVector(bottom, top);
+        let secondNormal = { x: -firstNormal.x, y: -firstNormal.y };
+        let left = MathHelper.translateVector(MathHelper.vecByScalMul(firstNormal, this._width / 2), bottom);
+        let right = MathHelper.translateVector(MathHelper.vecByScalMul(secondNormal, this._width / 2), bottom);
+        return { top: top, left: left, right: right };
+    }
+}
+
 class CircleConnector extends Shape {
     constructor(config) {
         config = config || {};
@@ -398,15 +453,23 @@ class CircleConnector extends Shape {
         this._sagitta = null;
         this._isReversed = null;
         this._lastData = null;
-        this._innerShape = null;
-        this._updateInnerShape();
+        this._arrow = null;
+        this._arrowTip = null;
 
         this._colinearTolerance = 5;
+        this._selfLinkDistance = 50;
+        this._selfLinkAngle = 0.75;
+        this._selfLinkDirection = { x: 0, y: -1 };
+        this._updateInnerShape();
+    }
+
+    isSelfLink() {
+        return this._firstItem === this._secondItem;
     }
 
     contains(point) {
         this._updateInnerShape();
-        return this._innerShape.contains(point);
+        return this._arrow.contains(point);
     }
 
     move(point) {
@@ -428,34 +491,87 @@ class CircleConnector extends Shape {
 
     draw(context) {
         this._updateInnerShape();
-        this._innerShape.draw(context);
+        this._arrow.draw(context);
+        if (this._arrowTip) this._arrowTip.draw(context);
     }
 
     select(pointerPosition) {
         super.select(pointerPosition);
-        this._innerShape.select(pointerPosition);
+        this._arrow.select(pointerPosition);
+        if (this._arrowTip) this._arrowTip.select(pointerPosition);
     }
 
     unselect() {
         super.unselect();
-        this._innerShape.unselect();
+        this._arrow.unselect();
+        if (this._arrowTip) this._arrowTip.unselect();
     }
 
     pointerOver() {
         super.pointerOver();
-        this._innerShape.pointerOver();
+        this._arrow.pointerOver();
+        if (this._arrowTip) this._arrowTip.pointerOver();
     }
 
     pointerOut() {
         super.pointerOut();
-        this._innerShape.pointerOut();
+        this._arrow.pointerOut();
+        if (this._arrowTip) this._arrowTip.pointerOut();
+    }
+
+    _pointsWereMoved(from, to, position) {
+        if (!this._lastData) {
+            return true;
+        }
+
+        let fromChanged = from ? !MathHelper.arePointsEqual(this._lastData.from, from) : false;
+        let toChanged = to ? !MathHelper.arePointsEqual(this._lastData.to, to) : false;
+        let positionChanged = position ? !MathHelper.arePointsEqual(this._lastData.position, position) : false;
+
+        return fromChanged || toChanged || positionChanged;
+    }
+
+    _selfConnect() {
+        let from = this._firstItem.getPosition();
+        let position = this.getPosition();
+
+        if (this._pointsWereMoved(from, null, position)) {
+            if (this._pointsWereMoved(null, null, position) && !MathHelper.arePointsEqual(from, position)) {
+                this._selfLinkDirection = MathHelper.getUnitVector(from, position);
+            }
+            let angle = Math.atan2(this._selfLinkDirection.y, this._selfLinkDirection.x);
+            let middlePoint = MathHelper.getPointOnCircleGivenAngle(from, this._firstItem.getRadius(), angle);
+            let firstPoint = MathHelper.getPointOnCircleGivenAngle(from, this._firstItem.getRadius(), angle - this._selfLinkAngle / 2);
+            let secondPoint = MathHelper.getPointOnCircleGivenAngle(from, this._firstItem.getRadius(), angle + this._selfLinkAngle / 2);
+            let center = MathHelper.centerOfCircleFrom3Points(firstPoint, secondPoint, MathHelper.translateVector(MathHelper.vecByScalMul(this._selfLinkDirection, this._selfLinkDistance), middlePoint));
+            let radius = MathHelper.distance(center, firstPoint);
+            let startAngle = Math.atan2(firstPoint.y - center.y, firstPoint.x - center.x)
+            let endAngle = Math.atan2(secondPoint.y - center.y, secondPoint.x - center.x)
+            let reverse = false;
+
+            this._arrow = new Arc({
+                start: startAngle,
+                end: endAngle,
+                position: center,
+                radius: radius,
+                reverse: reverse,
+                isMovable: true, isSelectable: true,
+                isHoverable: true, isPullable: false
+            });
+            this._arrow._state = this._state;
+
+            let tipEnd = secondPoint;
+            let tipStart = MathHelper.getPointOnCircleGivenAngle(center, radius, endAngle - 10 / radius);
+            this._calculateTipData(tipStart, tipEnd);
+
+            this._lastData = { from: from, to: from, position: position };
+        }
     }
 
     _connectLine(endPoint) {
         let from = this._firstItem.getPosition();
         let to = endPoint ? endPoint : this._secondItem.getPosition();
-
-        if (!(this._innerShape instanceof LineTo)) {
+        if (this._pointsWereMoved(from, to)) {
             if (!MathHelper.arePointsEqual(from, to)) {
                 let newfrom = MathHelper.translateVector(MathHelper.vecByScalMul(MathHelper.getUnitVector(from, to), this._firstItem.getRadius()), this._firstItem.getPosition());
                 if (this._secondItem) {
@@ -465,60 +581,61 @@ class CircleConnector extends Shape {
                 from = newfrom;
             }
 
-            this._innerShape = new LineTo({
-                start: from,
-                position: to,
-                isMovable: true, isSelectable: true,
-                isHoverable: true, isPullable: false
-            });
-            this._innerShape._state = this._state;
-
-            this._lastData = { from: from, to: to, position: this.getPosition() };
-        }
-
-        else if (!this._lastData || !(MathHelper.arePointsEqual(this._lastData.from, from)
-            && MathHelper.arePointsEqual(this._lastData.to, to))) {
-
-            if (!MathHelper.arePointsEqual(from, to)) {
-                let newfrom = MathHelper.translateVector(MathHelper.vecByScalMul(MathHelper.getUnitVector(from, to), this._firstItem.getRadius()), this._firstItem.getPosition());
-                if (this._secondItem) {
-                    let newTo = MathHelper.translateVector(MathHelper.vecByScalMul(MathHelper.getUnitVector(to, from), this._secondItem.getRadius()), this._secondItem.getPosition());
-                    to = newTo;
-                }
-                from = newfrom;
+            if (!(this._arrow instanceof LineTo)) {
+                this._arrow = new LineTo({
+                    start: from,
+                    position: to,
+                    isMovable: true, isSelectable: true,
+                    isHoverable: true, isPullable: false
+                });
+                this._arrow._state = this._state;
+            }
+            else {
+                this._arrow.setStart(from);
+                this._arrow.move(to);
             }
 
-            this._innerShape.setStart(from);
-            this._innerShape.move(to);
+            this._calculateTipData(this._arrow.getStart(), this._arrow.getPosition());
+
             this._lastData = { from: from, to: to, position: this.getPosition() };
         }
     }
 
     _connectArc() {
-        if (!(this._innerShape instanceof Arc)) {
-            let arcData = this._calculateArcData();
-            this._innerShape = new Arc({
-                start: arcData.startAngle,
-                end: arcData.endAngle,
-                position: arcData.center,
-                radius: arcData.radius,
-                reverse: arcData.reverse,
-                isMovable: true, isSelectable: true,
-                isHoverable: true, isPullable: false
-            });
-            this._innerShape._state = this._state;
-        }
+        if (this._pointsWereMoved(this._firstItem.getPosition(), this._secondItem.getPosition(), this.getPosition())) {
+            let arcData = null;
+            if (!(this._arrow instanceof Arc)) {
+                arcData = this._calculateArcData();
+                this._arrow = new Arc({
+                    start: arcData.startAngle,
+                    end: arcData.endAngle,
+                    position: arcData.center,
+                    radius: arcData.radius,
+                    reverse: arcData.reverse,
+                    isMovable: true, isSelectable: true,
+                    isHoverable: true, isPullable: false
+                });
+                this._arrow._state = this._state;
+            }
 
-        else if (!this._lastData || !(MathHelper.arePointsEqual(this._lastData.from, this._firstItem.getPosition())
-            && MathHelper.arePointsEqual(this._lastData.to, this._secondItem.getPosition())
-            && MathHelper.arePointsEqual(this._lastData.position, this.getPosition()))) {
+            else {
+                arcData = this._calculateArcData(MathHelper.arePointsEqual(this._lastData.position, this.getPosition()));
+                this._arrow.move(arcData.center);
+                this._arrow.setStart(arcData.startAngle);
+                this._arrow.setEnd(arcData.endAngle);
+                this._arrow.setRadius(arcData.radius);
+                this._arrow.setReverse(arcData.reverse);
+            }
 
-            let arcData = this._calculateArcData(MathHelper.arePointsEqual(this._lastData.position, this.getPosition()));
-            this._innerShape.move(arcData.center);
-            this._innerShape.setStart(arcData.startAngle);
-            this._innerShape.setEnd(arcData.endAngle);
-            this._innerShape.setRadius(arcData.radius);
-            this._innerShape.setReverse(arcData.reverse);
+            if (arcData.startAngle === arcData.endAngle) {
+                this._arrowTip = null;
+            }
+            else {
+                let scale = arcData.reverse ? 1 : -1;
+                let tipEnd = MathHelper.getPointOnCircleGivenAngle(arcData.center, arcData.radius, arcData.endAngle);
+                let tipStart = MathHelper.getPointOnCircleGivenAngle(arcData.center, arcData.radius, arcData.endAngle + scale * 10 / arcData.radius);
+                this._calculateTipData(tipStart, tipEnd);
+            }
         }
     }
 
@@ -568,11 +685,32 @@ class CircleConnector extends Shape {
         }
 
         this._lastData = { from: from, to: to, position: this.getPosition() };
+
         return arcData;
     }
 
+    _calculateTipData(tipStart, tipEnd) {
+        if (!MathHelper.arePointsEqual(tipStart, tipEnd)) {
+            let tipDirection = MathHelper.getVector(tipStart, tipEnd);
+            let angle = Math.atan2(tipDirection.y, tipDirection.x);
+            if (this._arrowTip) {
+                this._arrowTip.move(tipEnd);
+                this._arrowTip.setAngle(angle);
+            }
+            else {
+                this._arrowTip = new ArrowTip({ position: tipEnd, angle: angle });
+            }
+        }
+        else {
+            this._arrowTip = null;
+        }
+    }
+
     _updateInnerShape() {
-        if (this.isSet) {
+        if (this.isSelfLink()) {
+            this._selfConnect();
+        }
+        else if (this.isSet) {
             if (this._isLinear) {
                 this._connectLine();
             }
