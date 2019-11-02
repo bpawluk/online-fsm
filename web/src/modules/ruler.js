@@ -88,7 +88,7 @@ export class Ruler {
     onItemMoved(e) {
         if (e.item.isPullable) {
             let newPos = this._pull(e.item.getBounds(), e.point.x, e.point.y);
-            if (e.source !== this && newPos.x !== e.point.x || newPos.y !== e.point.y) {
+            if (e.source !== this && (newPos.x !== e.point.x || newPos.y !== e.point.y)) {
                 this._sandbox.sendMessage(this.MOVE_ITEM, { item: e.item, point: newPos, sender: this });
             }
         }

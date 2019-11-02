@@ -21,12 +21,10 @@ export class Workspace {
         this.CLEAR_CANVAS = 'canvas-clear';
         this.DRAW_ON_CANVAS = 'canvas-draw';
         this.REDRAW_CANVAS = 'canvas-redraw';
-        this.CREATE_SHAPE = 'create-shape'
         this.APP_INIT_EVENT = 'app-init';
         this.POINTER_DOWN_EVENT = 'pointer-down';
         this.POINTER_MOVE_EVENT = 'pointer-move';
         this.POINTER_UP_EVENT = 'pointer-up';
-        this.DOUBLE_CLICK_EVENT = 'double-click';
 
         // Requires interfaces:
         this.DRAWABLE_INTERFACE = 'drawable-interface';
@@ -51,7 +49,7 @@ export class Workspace {
         this._sandbox.createEvent(this.ITEM_SELECTION_CHANGED_EVENT);
         this._sandbox.declareInterface(this.DRAWABLE_INTERFACE, ['draw'], []);
         this._sandbox.declareInterface(this.HOVERABLE_INTERFACE, ['contains', 'pointerOver', 'pointerOut'], ['isHoverable']);
-        this._sandbox.declareInterface(this.MOVABLE_INTERFACE, ['move', 'getBounds'], ['isMovable', 'isPullable']);
+        this._sandbox.declareInterface(this.MOVABLE_INTERFACE, ['move'], ['isMovable']);
         this._sandbox.declareInterface(this.SELECTABLE_INTERFACE, ['contains', 'select', 'unselect'], ['isSelectable']);
     }
 
@@ -68,7 +66,6 @@ export class Workspace {
             this._sandbox.registerListener(this.POINTER_DOWN_EVENT, this._handlePointerDown.bind(this));
             this._sandbox.registerListener(this.POINTER_MOVE_EVENT, this._handlePointerMove.bind(this));
             this._sandbox.registerListener(this.POINTER_UP_EVENT, this._handlePointerUp.bind(this));
-            this._sandbox.registerListener(this.DOUBLE_CLICK_EVENT, this._handleDoubleClick.bind(this));
             this._sandbox.registerMessageReceiver(this.ADD_ITEM, this.addItem.bind(this));
             this._sandbox.registerMessageReceiver(this.REMOVE_ITEM, this.removeItem.bind(this));
             this._sandbox.registerMessageReceiver(this.MOVE_ITEM, this.moveItem.bind(this));
@@ -171,7 +168,9 @@ export class Workspace {
         this._sandbox.raiseEvent(this.ITEM_POINTER_OVER_CHANGED_EVENT, { point: point, oldItem: oldItem, newItem: newItem });
     }
 
-    selectItem(item, point = null) {
+    selectItem(data) {
+        let item = data.item;
+        let point = data.point;
         let oldItem = this._selectedItem
         let newItem = this._items.includes(item) && item.isSelectable ? item : null;
         this._selectedItem = newItem;
@@ -201,7 +200,6 @@ export class Workspace {
             this._sandbox.unregisterMessageReceiver(this.BEGIN_DRAG);
             this._sandbox.unregisterMessageReceiver(this.END_DRAG);
             this._sandbox.unregisterMessageReceiver(this.GET_ITEM_AT);
-            // this._sandbox.unregisterListener(this.DOUBLE_CLICK_EVENT, this._handleDoubleClick.bind(this));
             // this._sandbox.unregisterListener(this.POINTER_DOWN_EVENT, this._handlePointerDown.bind(this));
             // this._sandbox.unregisterListener(this.POINTER_MOVE_EVENT, this._handlePointerMove.bind(this));
             // this._sandbox.unregisterListener(this.POINTER_UP_EVENT, this._handlePointerUp.bind(this));
@@ -222,7 +220,7 @@ export class Workspace {
         let point = { x: e.x, y: e.y };
         let elementClicked = this.getItemAt({ point: point });
         this.beginDrag({ item: elementClicked, point: point });
-        this.selectItem(elementClicked, point);
+        this.selectItem({ item: elementClicked, point: point });
     }
 
     _handlePointerMove(e) {
@@ -244,25 +242,6 @@ export class Workspace {
         let elementAtPoint = this.getItemAt({ point: point });
         if (this._selectedItem && elementAtPoint === this._selectedItem) {
             this._sandbox.raiseEvent(this.ITEM_PRESSED_EVENT, { point: point, item: elementAtPoint });
-        }
-    }
-
-    _handleDoubleClick(e) {
-        let point = { x: e.x, y: e.y };
-        let doubleClickedItem = this.getItemAt({ point: point });
-        if (doubleClickedItem) {
-            // TODO: Make accepting state
-        } else {
-            let newItem = this._sandbox.sendMessage(this.CREATE_SHAPE, {
-                shape: 'circle',
-                config: {
-                    position: point, isHoverable: true,
-                    isMovable: true, isPullable: true,
-                    isSelectable: true, isConnectible: true
-                }
-            });
-            this.addItem(newItem);
-            this.selectItem(newItem, point);
         }
     }
 }

@@ -1,4 +1,8 @@
-export class ItemConnector {
+'use strict'
+
+import { State, Transition } from './fsm-shapes.js'
+
+export class FSM {
     constructor(sandbox) {
         // Provides:
 
@@ -6,12 +10,14 @@ export class ItemConnector {
         this.ADD_ITEM = 'workspace-add-item';
         this.REMOVE_ITEM = 'workspace-remove-item';
         this.BEGIN_DRAG = 'workspace-begin-drag';
-        this.CREATE_SHAPE = 'create-shape'
+        this.SELECT_ITEM = 'workspace-select-item';
         this.GET_ITEM_AT = 'workspace-get-item';
         this.APP_INIT_EVENT = 'app-init';
         this.ITEM_MOVED_EVENT = 'workspace-item-moved';
         this.ITEM_PRESSED_EVENT = 'workspace-item-pressed';
         this.ITEM_DRAG_ENDED_EVENT = 'workspace-drag-ended';
+        this.DOUBLE_CLICK_EVENT = 'double-click';
+
 
         // Requires interfaces:
 
@@ -33,6 +39,7 @@ export class ItemConnector {
             this._sandbox.registerListener(this.ITEM_MOVED_EVENT, this.onItemMoved.bind(this));
             this._sandbox.registerListener(this.ITEM_PRESSED_EVENT, this.onItemPressed.bind(this));
             this._sandbox.registerListener(this.ITEM_DRAG_ENDED_EVENT, this.onDragEnded.bind(this));
+            this._sandbox.registerListener(this.DOUBLE_CLICK_EVENT, this.onPointerDoubleClicked.bind(this));
         }
     }
 
@@ -40,26 +47,24 @@ export class ItemConnector {
         //this._sandbox.unregisterListener('app-init', ???);
     }
 
+    // test only
     onItemPressed(e) {
-        if (e.item.isConnectible) {
-            let newConnector = this._getConnectorFor(e.item, {
-                first: e.item, position: e.point,
-                isMovable: true, isSelectable: true,
-                isHoverable: true, isPullable: true
+        if (e.item instanceof State) {
+            let transition = new Transition({
+                position: e.point,
+                first: e.item
             });
-            if (newConnector) {
-                this._sandbox.sendMessage(this.ADD_ITEM, newConnector);
-                this._sandbox.sendMessage(this.BEGIN_DRAG, { item: newConnector, point: e.point });
-            }
+            this._sandbox.sendMessage(this.ADD_ITEM, transition);
+            this._sandbox.sendMessage(this.BEGIN_DRAG, { item: transition, point: e.point });
         }
     }
 
     onItemMoved(e) {
-        if (e.item.isConnector && !e.item.isSet) {
+        if (e.item instanceof Transition && !e.item.isSet) {
             let itemAt = this._sandbox.sendMessage(this.GET_ITEM_AT, {
-                point: e.point, 
+                point: e.point,
                 predicate: function (item) {
-                    return item.isConnectible && !item.isConnector;
+                    return item instanceof State;
                 }
             });
             if (itemAt) {
@@ -72,11 +77,11 @@ export class ItemConnector {
     }
 
     onDragEnded(e) {
-        if (e.item.isConnector && !e.item.isSet) {
+        if (e.item instanceof Transition && !e.item.isSet) {
             let itemAt = this._sandbox.sendMessage(this.GET_ITEM_AT, {
-                point: e.point, 
+                point: e.point,
                 predicate: function (item) {
-                    return item.isConnectible && !item.isConnector;
+                    return item instanceof State;
                 }
             });
             if (itemAt) {
@@ -88,23 +93,31 @@ export class ItemConnector {
         }
     }
 
+    onPointerDoubleClicked(e) {
+        let point = { x: e.x, y: e.y };
+        let doubleClickedItem = this._sandbox.sendMessage(this.GET_ITEM_AT, {
+            point: point,
+            predicate: function (item) {
+                return item instanceof State;
+            }
+        });
+        if (doubleClickedItem) {
+            // TODO: Make accepting state
+        }
+        else {
+            let state = new State({
+                position: point
+            });
+            this._sandbox.sendMessage(this.ADD_ITEM, state);
+            this._sandbox.sendMessage(this.SELECT_ITEM, { item: state, point: e.point });
+        }
+    }
+
     stop() {
         if (this.isRunning) {
-            this._sandbox.unregisterMessageReceiver(this.CREATE_SHAPE);
             this.isRunning = false;
         }
     }
 
-    cleanUp() {
-        this._sandbox.unregisterMessageReceiver(this.CREATE_SHAPE);
-    }
-
-    _getConnectorFor(item, config) {
-        switch (item.constructor.name) {
-            case 'Circle':
-                return this._sandbox.sendMessage(this.CREATE_SHAPE, { shape: 'circleConnector', config: config });
-            default:
-                return null;
-        }
-    }
+    cleanUp() { }
 }

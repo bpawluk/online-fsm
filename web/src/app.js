@@ -4,9 +4,8 @@ import { Canvas } from './modules/canvas.js';
 import { DomManager } from './modules/dom-manager.js';
 import { Interaction } from './modules/interaction.js';
 import { Workspace } from './modules/workspace.js';
-import { ShapeFactory } from './modules/shape-factory.js';
 import { Ruler } from './modules/ruler.js';
-import { ItemConnector } from './modules/item-connector.js';
+import { FSM } from './modules/fsm.js';
 
 (function (domEntrypoint) {
     const core = new Core();
@@ -14,8 +13,7 @@ import { ItemConnector } from './modules/item-connector.js';
     core.addModule(DomManager, 'dom-manager', { entrypoint: domEntrypoint });
     core.addModule(Interaction, 'interaction');
     core.addModule(Workspace, 'workspace');
-    core.addModule(ShapeFactory, 'shape-factory');
     core.addModule(Ruler, 'ruler', {distance: 25, reach: 3, visibility: true});
-    core.addModule(ItemConnector, 'item-connector');
+    core.addModule(FSM, 'fsm');
     core.init();
 })('workspace');
