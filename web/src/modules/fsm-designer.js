@@ -2,7 +2,7 @@
 
 import { State, Transition } from './fsm-shapes.js'
 
-export class FSM {
+export class FSMDesigner {
     constructor(sandbox) {
         // Provides:
 
@@ -12,12 +12,13 @@ export class FSM {
         this.BEGIN_DRAG = 'workspace-begin-drag';
         this.SELECT_ITEM = 'workspace-select-item';
         this.GET_ITEM_AT = 'workspace-get-item';
+        this.GET_ITEMS = 'workspace-get-items';
         this.APP_INIT_EVENT = 'app-init';
         this.ITEM_MOVED_EVENT = 'workspace-item-moved';
         this.ITEM_PRESSED_EVENT = 'workspace-item-pressed';
         this.ITEM_DRAG_ENDED_EVENT = 'workspace-drag-ended';
+        this.ITEM_DELETED_EVENT = 'workspace-item-deleted';
         this.DOUBLE_CLICK_EVENT = 'double-click';
-
 
         // Requires interfaces:
 
@@ -39,6 +40,7 @@ export class FSM {
             this._sandbox.registerListener(this.ITEM_MOVED_EVENT, this.onItemMoved.bind(this));
             this._sandbox.registerListener(this.ITEM_PRESSED_EVENT, this.onItemPressed.bind(this));
             this._sandbox.registerListener(this.ITEM_DRAG_ENDED_EVENT, this.onDragEnded.bind(this));
+            this._sandbox.registerListener(this.ITEM_DELETED_EVENT, this.onItemDeleted.bind(this));
             this._sandbox.registerListener(this.DOUBLE_CLICK_EVENT, this.onPointerDoubleClicked.bind(this));
         }
     }
@@ -47,9 +49,8 @@ export class FSM {
         //this._sandbox.unregisterListener('app-init', ???);
     }
 
-    // test only
     onItemPressed(e) {
-        if (e.item instanceof State) {
+        if (e.special && e.item instanceof State) {
             let transition = new Transition({
                 position: e.point,
                 first: e.item
@@ -90,6 +91,17 @@ export class FSM {
             else {
                 this._sandbox.sendMessage(this.REMOVE_ITEM, e.item);
             }
+        }
+    }
+
+    onItemDeleted(e) {
+        if (e.item instanceof State) {
+            let itemsToDelete = this._sandbox.sendMessage(this.GET_ITEMS, (item) => {
+                return item instanceof Transition && (item._firstItem === e.item || item._secondItem === e.item)
+            });
+            itemsToDelete.forEach(item => {
+                this._sandbox.sendMessage(this.REMOVE_ITEM, item);
+            });
         }
     }
 

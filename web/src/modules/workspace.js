@@ -10,10 +10,12 @@ export class Workspace {
         this.END_DRAG = 'workspace-end-drag';
         this.SELECT_ITEM = 'workspace-select-item';
         this.GET_ITEM_AT = 'workspace-get-item';
+        this.GET_ITEMS = 'workspace-get-items';
         this.ITEM_DRAG_STARTED_EVENT = 'workspace-drag-started';
         this.ITEM_MOVED_EVENT = 'workspace-item-moved';
         this.ITEM_DRAG_ENDED_EVENT = 'workspace-drag-ended';
         this.ITEM_PRESSED_EVENT = 'workspace-item-pressed';
+        this.ITEM_DELETED_EVENT = 'workspace-item-deleted';
         this.ITEM_POINTER_OVER_CHANGED_EVENT = 'workspace-item-pointer-over-changed';
         this.ITEM_SELECTION_CHANGED_EVENT = 'workspace-item-selection-changed';
 
@@ -25,6 +27,7 @@ export class Workspace {
         this.POINTER_DOWN_EVENT = 'pointer-down';
         this.POINTER_MOVE_EVENT = 'pointer-move';
         this.POINTER_UP_EVENT = 'pointer-up';
+        this.KEY_DOWN = 'key-down'
 
         // Requires interfaces:
         this.DRAWABLE_INTERFACE = 'drawable-interface';
@@ -45,6 +48,7 @@ export class Workspace {
         this._sandbox.createEvent(this.ITEM_MOVED_EVENT);
         this._sandbox.createEvent(this.ITEM_DRAG_ENDED_EVENT);
         this._sandbox.createEvent(this.ITEM_PRESSED_EVENT);
+        this._sandbox.createEvent(this.ITEM_DELETED_EVENT);
         this._sandbox.createEvent(this.ITEM_POINTER_OVER_CHANGED_EVENT);
         this._sandbox.createEvent(this.ITEM_SELECTION_CHANGED_EVENT);
         this._sandbox.declareInterface(this.DRAWABLE_INTERFACE, ['draw'], []);
@@ -66,6 +70,7 @@ export class Workspace {
             this._sandbox.registerListener(this.POINTER_DOWN_EVENT, this._handlePointerDown.bind(this));
             this._sandbox.registerListener(this.POINTER_MOVE_EVENT, this._handlePointerMove.bind(this));
             this._sandbox.registerListener(this.POINTER_UP_EVENT, this._handlePointerUp.bind(this));
+            this._sandbox.registerListener(this.KEY_DOWN, this._handleKeyDown.bind(this));
             this._sandbox.registerMessageReceiver(this.ADD_ITEM, this.addItem.bind(this));
             this._sandbox.registerMessageReceiver(this.REMOVE_ITEM, this.removeItem.bind(this));
             this._sandbox.registerMessageReceiver(this.MOVE_ITEM, this.moveItem.bind(this));
@@ -73,6 +78,7 @@ export class Workspace {
             this._sandbox.registerMessageReceiver(this.BEGIN_DRAG, this.beginDrag.bind(this));
             this._sandbox.registerMessageReceiver(this.END_DRAG, this.endDrag.bind(this));
             this._sandbox.registerMessageReceiver(this.GET_ITEM_AT, this.getItemAt.bind(this));
+            this._sandbox.registerMessageReceiver(this.GET_ITEMS, this.getItems.bind(this));
             this.isRunning = true;
         }
     }
@@ -115,6 +121,14 @@ export class Workspace {
             }
         }
         return null;
+    }
+
+    getItems(predicate) {
+        if(!predicate){
+            return this._items.slice();
+        } else {
+            return this._items.filter(predicate);
+        }
     }
 
     beginDrag(data) {
@@ -241,7 +255,16 @@ export class Workspace {
         this.endDrag(point);
         let elementAtPoint = this.getItemAt({ point: point });
         if (this._selectedItem && elementAtPoint === this._selectedItem) {
-            this._sandbox.raiseEvent(this.ITEM_PRESSED_EVENT, { point: point, item: elementAtPoint });
+            this._sandbox.raiseEvent(this.ITEM_PRESSED_EVENT, { point: point, item: elementAtPoint, special: e.ctrlKey });
+        }
+    }
+
+    _handleKeyDown(e) {
+        if (e.key === 'Delete' && this._selectedItem) {
+            let toDelete = this._selectedItem;
+            this.selectItem({ item: null });
+            this.removeItem(toDelete);
+            this._sandbox.raiseEvent(this.ITEM_DELETED_EVENT, { item: toDelete });
         }
     }
 }

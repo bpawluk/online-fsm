@@ -8,6 +8,7 @@ export class Interaction {
         this.POINTER_DOWN_EVENT = 'pointer-down';
         this.POINTER_MOVE_EVENT = 'pointer-move';
         this.POINTER_UP_EVENT = 'pointer-up';
+        this.KEY_DOWN = 'key-down'
 
         // Depends on:
         this.APP_INIT_EVENT = 'app-init';
@@ -18,10 +19,13 @@ export class Interaction {
         this.isRunning = false;
         this._sandbox = sandbox;
 
+        this._keyDownBind = this._handleKeyDown.bind(this);
+
         this._sandbox.createEvent(this.DOUBLE_CLICK_EVENT);
         this._sandbox.createEvent(this.POINTER_DOWN_EVENT);
         this._sandbox.createEvent(this.POINTER_MOVE_EVENT);
         this._sandbox.createEvent(this.POINTER_UP_EVENT);
+        this._sandbox.createEvent(this.KEY_DOWN);
     }
 
     init() {
@@ -35,6 +39,7 @@ export class Interaction {
     start() {
         if (!this.isRunning) {
             this._sandbox.registerMessageReceiver(this.MAKE_INTERACTIVE, this.makeInteractive.bind(this));
+            document.addEventListener("keydown", this._keyDownBind);
             this.isRunning = true;
         }
     }
@@ -58,6 +63,7 @@ export class Interaction {
     stop() {
         if (this.isRunning) {
             this.isRunning = false;
+            document.removeEventListener("keydown", this._keyDownBind);
             this._sandbox.unregisterMessageReceiver(this.MAKE_INTERACTIVE);
         }
     }
@@ -79,46 +85,50 @@ export class Interaction {
 
     _handleDoubleClick(e) {
         var point = this._getPointInElement(e.target, e.clientX, e.clientY);
-        this._sandbox.raiseEvent(this.DOUBLE_CLICK_EVENT, { target: e.target, x: point.x, y: point.y });
+        this._sandbox.raiseEvent(this.DOUBLE_CLICK_EVENT, { target: e.target, x: point.x, y: point.y, ctrlKey: e.ctrlKey });
     }
 
     _handleMouseDown(e) {
         var point = this._getPointInElement(e.target, e.clientX, e.clientY);
-        this._sandbox.raiseEvent(this.POINTER_DOWN_EVENT, { target: e.target, x: point.x, y: point.y });
+        this._sandbox.raiseEvent(this.POINTER_DOWN_EVENT, { target: e.target, x: point.x, y: point.y, ctrlKey: e.ctrlKey });
     }
 
     _handleMouseMove(e) {
         var point = this._getPointInElement(e.target, e.clientX, e.clientY);
-        this._sandbox.raiseEvent(this.POINTER_MOVE_EVENT, { target: e.target, x: point.x, y: point.y });
+        this._sandbox.raiseEvent(this.POINTER_MOVE_EVENT, { target: e.target, x: point.x, y: point.y, ctrlKey: e.ctrlKey });
     }
 
     _handleMouseUp(e) {
         var point = this._getPointInElement(e.target, e.clientX, e.clientY);
-        this._sandbox.raiseEvent(this.POINTER_UP_EVENT, { target: e.target, x: point.x, y: point.y });
+        this._sandbox.raiseEvent(this.POINTER_UP_EVENT, { target: e.target, x: point.x, y: point.y, ctrlKey: e.ctrlKey });
     }
 
     _handleTouchStart(e) {
         let touch = e.changedTouches[0];
         var point = this._getPointInElement(e.target, touch.clientX, touch.clientY);
-        this._sandbox.raiseEvent(this.POINTER_DOWN_EVENT, { target: e.target, x: point.x, y: point.y });
+        this._sandbox.raiseEvent(this.POINTER_DOWN_EVENT, { target: e.target, x: point.x, y: point.y, ctrlKey: e.ctrlKey });
     }
 
     _handleTouchEnd(e) {
         let touch = e.changedTouches[0];
         var point = this._getPointInElement(e.target, touch.clientX, touch.clientY);
-        this._sandbox.raiseEvent(this.POINTER_UP_EVENT, { target: e.target, x: point.x, y: point.y });
+        this._sandbox.raiseEvent(this.POINTER_UP_EVENT, { target: e.target, x: point.x, y: point.y, ctrlKey: e.ctrlKey });
     }
 
     _handleTouchCancel(e) {
         let touch = e.changedTouches[0];
         var point = this._getPointInElement(e.target, touch.clientX, touch.clientY);
-        this._sandbox.raiseEvent(this.POINTER_UP_EVENT, { target: e.target, x: point.x, y: point.y });
+        this._sandbox.raiseEvent(this.POINTER_UP_EVENT, { target: e.target, x: point.x, y: point.y, ctrlKey: e.ctrlKey });
     }
 
     _handleTouchMove(e) {
         e.preventDefault()
         let touch = e.changedTouches[0];
         var point = this._getPointInElement(e.target, touch.clientX, touch.clientY);
-        this._sandbox.raiseEvent(this.POINTER_MOVE_EVENT, { target: e.target, x: point.x, y: point.y });
+        this._sandbox.raiseEvent(this.POINTER_MOVE_EVENT, { target: e.target, x: point.x, y: point.y, ctrlKey: e.ctrlKey });
+    }
+
+    _handleKeyDown(e) {
+        this._sandbox.raiseEvent(this.KEY_DOWN, { target: e.target, key: e.key });
     }
 }
