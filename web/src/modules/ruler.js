@@ -61,7 +61,7 @@ export class Ruler {
         }
 
         context.save();
-        context.strokeStyle = '#F0F0F0'
+        context.strokeStyle = '#ebebeb'
         context.beginPath();
 
         let i = this._distance;

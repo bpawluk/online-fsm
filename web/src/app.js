@@ -13,7 +13,7 @@ import { FSMDesigner } from './modules/fsm-designer.js';
     core.addModule(DomManager, 'dom-manager', { entrypoint: domEntrypoint });
     core.addModule(Interaction, 'interaction');
     core.addModule(Workspace, 'workspace');
-    core.addModule(Ruler, 'ruler', {distance: 25, reach: 3, visibility: true});
+    core.addModule(Ruler, 'ruler', {distance: 15, reach: 3, visibility: true});
     core.addModule(FSMDesigner, 'fsm-designer');
     core.init();
 })('workspace');

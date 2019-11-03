@@ -87,6 +87,41 @@ class Shape {
     _decoratedDraw(context) { }
 }
 
+class TextBox extends Shape {
+    constructor(config) {
+        config = config || {};
+        super(config);
+
+        this._text = config.text;
+        this._font = '1em sans-serif';
+        this._offsetX = 0;
+        this._offsetY = 0;
+        this.configure(config);
+    }
+
+    configure(config) {
+        this._font = config.font || this._font;
+        this._offsetX = config.offsetX === undefined ? this._offsetX : config.offsetX;
+        this._offsetY = config.offsetY === undefined ? this._offsetY : config.offsetY;
+    }
+
+    setText(text) {
+        this._text = text;
+    }
+
+    _decoratedDraw(context) {
+        if (this._text) {
+            context.font = this._font;
+            let width = context.measureText(this._text).width;
+            let height = context.measureText('O').width; // dirty approximation
+            let temp = context.fillStyle;
+            context.fillStyle = context.strokeStyle;
+            context.fillText(this._text, this._position.x - width * this._offsetX, this._position.y + height * this._offsetY);
+            context.fillStyle = temp;
+        }
+    }
+}
+
 class Line extends Shape {
     constructor(config) {
         config = config || {};
@@ -174,7 +209,7 @@ class Circle extends Shape {
         config = config || {};
         super(config);
 
-        this._radius = config.radius === undefined ? 50 : config.radius;
+        this._radius = config.radius === undefined ? 30 : config.radius;
     }
 
     contains(point) {
@@ -217,8 +252,8 @@ class Triangle extends Shape {
         config = config || {};
         super(config);
         this._rotation = config.rotation === undefined ? 0 : config.rotation;
-        this._height = config.height === undefined ? 10 : config.height;
-        this._base = config.base === undefined ? 10 : config.base;
+        this._height = config.height === undefined ? 8 : config.height;
+        this._base = config.base === undefined ? 8 : config.base;
 
         this._vertices = null;
         this._calculateVertices();
@@ -381,6 +416,27 @@ export class State extends Circle {
         config.isMovable = true;
         config.isPullable = true;
         super(config);
+
+        this._textBox = new TextBox({
+            position: this._position,
+            text: "Paweł",
+            offsetX: 0.5,
+            offsetY: 0.5
+        });
+    }
+
+    setText(text) {
+        this._textBox.setText(text);
+    }
+
+    move(point) {
+        super.move(point);
+        this._textBox.move(this._position);
+    }
+
+    _decoratedDraw(context) {
+        super._decoratedDraw(context);
+        this._textBox._decoratedDraw(context);
     }
 }
 
@@ -405,13 +461,24 @@ export class Transition extends Shape {
         this._isReversed = !!config.reverse;
 
         this._colinearTolerance = config.tolerance === undefined ? 5 : config.tolerance;
-        this._selfLinkDistance = config.selfLinkSize === undefined ? 50 : config.selfLinkSize;
+        this._selfLinkDistance = config.selfLinkSize === undefined ? 30 : config.selfLinkSize;
         this._selfLinkAngle = 0.75;
         this._selfLinkDirection = { x: 0, y: -1 };
+
+        this._textBox = new TextBox({
+            position: this._position,
+            text: "Aneta",
+            offsetX: 0,
+            offsetY: 0
+        });
 
         this._lastData = null;
         this._arrow = null;
         this._updateArrowIfNeeded();
+    }
+
+    setText(text) {
+        this._textBox.setText(text);
     }
 
     isSelfLink() {
@@ -431,7 +498,7 @@ export class Transition extends Shape {
             }
         }
         else if (this.isSet) {
-            if (MathUtils.isPointCloseToSegment(this._firstItem.getPosition(), this._secondItem.getPosition(), this._position, this._colinearTolerance)) {
+            if (MathUtils.arePointsColinear(this._firstItem.getPosition(), this._secondItem.getPosition(), this._position, this._colinearTolerance)) {
                 this._sagitta = 0;
             }
             else {
@@ -597,6 +664,24 @@ export class Transition extends Shape {
                 this._arrow.setReverse(data.reverse);
             }
         }
+        this._repositionText(type, data);
+    }
+
+    _repositionText(type, data) {
+        let position = null;
+        let offsetX = null;
+        let offsetY = null;
+        if (type === StraightArrow) {
+            position = MathUtils.translateVector(MathUtils.vecByScalMul(MathUtils.getVector(data.from, data.to), 0.5), data.from);
+        }
+        else if (type === CircularArrow) {
+            position = MathUtils.getPointOnCircleGivenAngle(data.center, data.radius, MathUtils.getMidAngleOfArc(data.startAngle, data.endAngle, data.reverse));
+        }
+        this._textBox.move(position);
+        this._textBox.configure({
+            offsetX: offsetX,
+            offsetY: offsetY
+        });
     }
 
     _updateArrowIfNeeded() {
@@ -624,5 +709,6 @@ export class Transition extends Shape {
     _decoratedDraw(context) {
         this._updateArrowIfNeeded();
         this._arrow._decoratedDraw(context);
+        this._textBox._decoratedDraw(context);
     }
 }

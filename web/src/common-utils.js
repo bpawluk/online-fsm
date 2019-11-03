@@ -167,5 +167,17 @@ export let MathUtils = {
         center.x = ((yb * tempA - ya * tempB) / det) + c.x;
         center.y = ((xa * tempB - xb * tempA) / det) + c.y;
         return center;
+    },
+
+    getMidAngleOfArc: function(start, end, reversed){
+        let mid = (start + end) / 2
+        if((start <= end && reversed) || (start > end && !reversed)){
+            if(mid <= 0){
+                return mid + Math.PI;
+            } else {
+                return mid - Math.PI;
+            }
+        }
+        return mid;
     }
 }

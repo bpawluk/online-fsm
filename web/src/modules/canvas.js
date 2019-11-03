@@ -47,7 +47,7 @@ export class Canvas {
     onAppInit() {
         //this._sandbox.unregisterListener('app-init', ???);
         this._canvas = this._sandbox.sendMessage(this.APPEND_DOM_ELEMENT, {
-            type: 'canvas', width: '800px', height: '600px',
+            type: 'canvas', width: '800px', height: '800px',
             style: { 'border-style': 'solid', 'border-width': '1px' }
         });
         this._context = this._canvas.getContext('2d', { alpha: false });
