@@ -1,11 +1,26 @@
-#workspace{
-    
+html {
+    height: 100%; 
+    padding: 0;
+    margin: 0;
 }
 
-#canvas{
+body {
+    text-align: center;
+    padding: 0;
+    margin: 0;
+    height: 100%;
+}
+
+#workspace {
+    padding: 0;
+    margin: 0;
+    line-height: 0;
+}
+
+#canvas {
     border: thin solid black
 }
 
-#addState{
+#addState {
 
 }

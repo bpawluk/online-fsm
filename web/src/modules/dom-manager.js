@@ -6,6 +6,8 @@ export class DomManager {
     constructor(sandbox, config) {
         // Provides:
         this.APPEND_DOM_ELEMENT = 'append-dom-element';
+        this.GET_APP_SIZE = 'get-app-size';
+        this.APP_RESIZED_EVENT = 'app-resized';
 
         // Depends on:
         this.APP_INIT_EVENT = 'app-init';
@@ -16,10 +18,14 @@ export class DomManager {
             throw new Error('DomManager requires configuration object with an entrypoint defined');
         }
 
+        this._windowResizedBind = this._onWindowResized.bind(this);
+
         this.isInit = false;
         this.isRunning = false;
         this._sandbox = sandbox;
         this._outerDiv = document.getElementById(config.entrypoint);
+
+        this._sandbox.createEvent(this.APP_RESIZED_EVENT);
     }
 
     init() {
@@ -33,6 +39,8 @@ export class DomManager {
     start() {
         if (!this.isRunning) {
             this._sandbox.registerMessageReceiver(this.APPEND_DOM_ELEMENT, this.appendDomElement.bind(this));
+            this._sandbox.registerMessageReceiver(this.GET_APP_SIZE, this.getAppSize.bind(this));
+            window.addEventListener('resize', this._windowResizedBind)
         }
     }
 
@@ -56,10 +64,10 @@ export class DomManager {
         }
 
         if (config.rawContent) {
-
+            // to implement
             config.rawContent = null;
         } else if (config.domContent) {
-
+            // to implement
             config.domContent = null;
         }
 
@@ -73,12 +81,25 @@ export class DomManager {
         return elementToAppend;
     }
 
+    getAppSize() {
+        let data = this._outerDiv.getBoundingClientRect();
+        return {
+            width: data.width,
+            height: data.height
+        };
+    }
+
     stop() {
         if (this.isRunning) {
             this.isRunning = false;
+            window.removeEventListener('resize', this._windowResizedBind)
             this._sandbox.unregisterMessageReceiver(this.APPEND_DOM_ELEMENT);
         }
     }
 
     cleanUp() { }
+
+    _onWindowResized(e) {
+        this._sandbox.raiseEvent(this.APP_RESIZED_EVENT, this.getAppSize());
+    }
 }
