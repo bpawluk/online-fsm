@@ -140,9 +140,10 @@ export class Workspace {
             if (this._items.includes(item) && item.isMovable) {
                 this._draggedItem = item;
                 this._sandbox.raiseEvent(this.ITEM_DRAG_STARTED_EVENT, { item: item, point: point });
+                this._sandbox.sendMessage(this.PREVENT_SCROLLING, false);
             }
         }
-        this._sandbox.sendMessage(this.PREVENT_SCROLLING, false);
+        
     }
 
     endDrag(point) {
@@ -150,8 +151,8 @@ export class Workspace {
             let draggedItem = this._draggedItem;
             this._draggedItem = null;
             this._sandbox.raiseEvent(this.ITEM_DRAG_ENDED_EVENT, { item: draggedItem, point: point });
+            this._sandbox.sendMessage(this.PREVENT_SCROLLING, true);
         }
-        this._sandbox.sendMessage(this.PREVENT_SCROLLING, true);
     }
 
     moveItem(data) {
