@@ -9,7 +9,7 @@ import { FSMDesigner } from './modules/fsm-designer.js';
 
 (function (domEntrypoint) {
     const core = new Core();
-    core.addModule(Canvas, 'canvas', { isInteractive: true });
+    core.addModule(Canvas, 'canvas', { isInteractive: true, minSize: { width: 800, height: 600 } });
     core.addModule(DomManager, 'dom-manager', { entrypoint: domEntrypoint });
     core.addModule(Interaction, 'interaction');
     core.addModule(Workspace, 'workspace');

@@ -23,6 +23,7 @@ export class Workspace {
         this.CLEAR_CANVAS = 'canvas-clear';
         this.DRAW_ON_CANVAS = 'canvas-draw';
         this.REDRAW_CANVAS = 'canvas-redraw';
+        this.PREVENT_SCROLLING = 'prevent-scrolling';
         this.APP_INIT_EVENT = 'app-init';
         this.POINTER_DOWN_EVENT = 'pointer-down';
         this.POINTER_MOVE_EVENT = 'pointer-move';
@@ -141,6 +142,7 @@ export class Workspace {
                 this._sandbox.raiseEvent(this.ITEM_DRAG_STARTED_EVENT, { item: item, point: point });
             }
         }
+        this._sandbox.sendMessage(this.PREVENT_SCROLLING, false);
     }
 
     endDrag(point) {
@@ -149,6 +151,7 @@ export class Workspace {
             this._draggedItem = null;
             this._sandbox.raiseEvent(this.ITEM_DRAG_ENDED_EVENT, { item: draggedItem, point: point });
         }
+        this._sandbox.sendMessage(this.PREVENT_SCROLLING, true);
     }
 
     moveItem(data) {

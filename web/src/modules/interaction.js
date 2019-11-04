@@ -4,6 +4,7 @@ export class Interaction {
     constructor(sandbox) {
         // Provides:
         this.MAKE_INTERACTIVE = 'make-interactive';
+        this.PREVENT_SCROLLING = 'prevent-scrolling';
         this.DOUBLE_CLICK_EVENT = 'double-click';
         this.POINTER_DOWN_EVENT = 'pointer-down';
         this.POINTER_MOVE_EVENT = 'pointer-move';
@@ -17,6 +18,7 @@ export class Interaction {
 
         this.isInit = false;
         this.isRunning = false;
+        this._isScrollingEnabled = true;
         this._sandbox = sandbox;
 
         this._keyDownBind = this._handleKeyDown.bind(this);
@@ -39,6 +41,7 @@ export class Interaction {
     start() {
         if (!this.isRunning) {
             this._sandbox.registerMessageReceiver(this.MAKE_INTERACTIVE, this.makeInteractive.bind(this));
+            this._sandbox.registerMessageReceiver(this.PREVENT_SCROLLING, this.preventScrolling.bind(this));
             document.addEventListener("keydown", this._keyDownBind);
             this.isRunning = true;
         }
@@ -60,11 +63,16 @@ export class Interaction {
         element.addEventListener("touchmove", this._handleTouchMove.bind(this));
     }
 
+    preventScrolling(shouldScroll) {
+        this._isScrollingEnabled = !!shouldScroll;
+    }
+
     stop() {
         if (this.isRunning) {
             this.isRunning = false;
             document.removeEventListener("keydown", this._keyDownBind);
             this._sandbox.unregisterMessageReceiver(this.MAKE_INTERACTIVE);
+            this._sandbox.unregisterMessageReceiver(this.PREVENT_SCROLLING);
         }
     }
 
@@ -122,7 +130,9 @@ export class Interaction {
     }
 
     _handleTouchMove(e) {
-        e.preventDefault()
+        if (!this._isScrollingEnabled) {
+            e.preventDefault()
+        }
         let touch = e.changedTouches[0];
         var point = this._getPointInElement(e.target, touch.clientX, touch.clientY);
         this._sandbox.raiseEvent(this.POINTER_MOVE_EVENT, { target: e.target, x: point.x, y: point.y, ctrlKey: e.ctrlKey });
