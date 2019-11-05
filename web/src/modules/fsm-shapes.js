@@ -13,7 +13,7 @@ class Shape {
         this.isPullable = !!config.isPullable;
         this.fill = !!config.fill;
 
-        this._state = 'default';
+        this._visualState = 'default';
         this._pointerOffset = null;
     }
 
@@ -21,7 +21,7 @@ class Shape {
 
     draw(context) {
         context.save();
-        switch (this._state) {
+        switch (this._visualState) {
             case 'default':
                 context.strokeStyle = '#000000';
                 break;
@@ -32,7 +32,7 @@ class Shape {
                 context.strokeStyle = '#336699';
                 break;
             default:
-                throw new Error('There is no ' + this._state + ' state defined.');
+                throw new Error('There is no ' + this._visualState + ' visual state defined.');
         }
         context.fillStyle = this.fill ? context.strokeStyle : '#FFFFFF'
         this._decoratedDraw(context);
@@ -58,7 +58,7 @@ class Shape {
     }
 
     select(pointerPosition) {
-        this._state = 'selected';
+        this._visualState = 'selected';
         if (pointerPosition) {
             this._pointerOffset = {
                 x: pointerPosition.x - this._position.x,
@@ -68,19 +68,19 @@ class Shape {
     }
 
     unselect() {
-        this._state = 'default';
+        this._visualState = 'default';
         this._pointerAnchor = null;
     }
 
     pointerOver() {
-        if (this._state !== 'selected') {
-            this._state = 'hovered';
+        if (this._visualState !== 'selected') {
+            this._visualState = 'hovered';
         }
     }
 
     pointerOut() {
-        if (this._state !== 'selected') {
-            this._state = 'default';
+        if (this._visualState !== 'selected') {
+            this._visualState = 'default';
         }
     }
 
@@ -417,12 +417,23 @@ export class State extends Circle {
         config.isPullable = true;
         super(config);
 
+        this.isAccepting = config.accept === undefined ? false : config.accept;
+        this.isEntry = config.entry === undefined ? false : config.entry;
         this._textBox = new TextBox({
             position: this._position,
             text: "Paweł",
             offsetX: 0.5,
             offsetY: 0.5
         });
+        this._entryArrow = null;
+    }
+
+    accept(value) {
+        this.isAccepting = !!value;
+    }
+
+    setAsEntry(value) {
+        this.isEntry = !!value;
     }
 
     setText(text) {
@@ -437,6 +448,30 @@ export class State extends Circle {
     _decoratedDraw(context) {
         super._decoratedDraw(context);
         this._textBox._decoratedDraw(context);
+        if (this.isAccepting) {
+            context.beginPath();
+            context.arc(this._position.x, this._position.y, 0.85 * this._radius, 0, 2 * Math.PI);
+            context.stroke();
+        }
+        if (this.isEntry) {
+            let tempFill = context.fillStyle;
+            let tempStroke = context.strokeStyle;
+            context.fillStyle = '#000000';
+            context.strokeStyle = '#000000'
+            context.beginPath();
+            context.arc(this._position.x - 2 * this._radius, this._position.y, 0.3 * this._radius, 0, 2 * Math.PI);
+            context.fill();
+            if (!this._entryArrow) {
+                this._entryArrow = new StraightArrow({start: { x: this._position.x - 2 * this._radius, y: this._position.y }, position: { x: this._position.x - this._radius, y: this._position.y } });
+            } 
+            else {
+                this._entryArrow.move({ x: this._position.x - this._radius, y: this._position.y });
+                this._entryArrow.setStart({ x: this._position.x - 2 * this._radius, y: this._position.y });
+            }
+            this._entryArrow._decoratedDraw(context);
+            context.fillStyle = tempFill;
+            context.strokeStyle = tempStroke;
+        }
     }
 }
 
@@ -636,7 +671,7 @@ export class Transition extends Shape {
                     isMovable: true, isSelectable: true,
                     isHoverable: true, isPullable: true
                 });
-                this._arrow._state = this._state;
+                this._arrow._visualState = this._visualState;
             }
             else {
                 this._arrow.setStart(data.from);
@@ -654,7 +689,7 @@ export class Transition extends Shape {
                     isMovable: true, isSelectable: true,
                     isHoverable: true, isPullable: false
                 });
-                this._arrow._state = this._state;
+                this._arrow._visualState = this._visualState;
             }
             else {
                 this._arrow.move(data.center);

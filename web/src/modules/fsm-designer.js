@@ -13,6 +13,7 @@ export class FSMDesigner {
         this.SELECT_ITEM = 'workspace-select-item';
         this.GET_ITEM_AT = 'workspace-get-item';
         this.GET_ITEMS = 'workspace-get-items';
+        this.REFRESH_WORKSPACE = 'workspace-refresh';
         this.APP_INIT_EVENT = 'app-init';
         this.ITEM_MOVED_EVENT = 'workspace-item-moved';
         this.ITEM_PRESSED_EVENT = 'workspace-item-pressed';
@@ -37,11 +38,11 @@ export class FSMDesigner {
 
     start() {
         if (!this.isRunning) {
-            this._sandbox.registerListener(this.ITEM_MOVED_EVENT, this.onItemMoved.bind(this));
-            this._sandbox.registerListener(this.ITEM_PRESSED_EVENT, this.onItemPressed.bind(this));
-            this._sandbox.registerListener(this.ITEM_DRAG_ENDED_EVENT, this.onDragEnded.bind(this));
-            this._sandbox.registerListener(this.ITEM_DELETED_EVENT, this.onItemDeleted.bind(this));
-            this._sandbox.registerListener(this.DOUBLE_CLICK_EVENT, this.onPointerDoubleClicked.bind(this));
+            this._sandbox.registerListener(this.ITEM_MOVED_EVENT, this._onItemMoved.bind(this));
+            this._sandbox.registerListener(this.ITEM_PRESSED_EVENT, this._onItemPressed.bind(this));
+            this._sandbox.registerListener(this.ITEM_DRAG_ENDED_EVENT, this._onDragEnded.bind(this));
+            this._sandbox.registerListener(this.ITEM_DELETED_EVENT, this._onItemDeleted.bind(this));
+            this._sandbox.registerListener(this.DOUBLE_CLICK_EVENT, this._onPointerDoubleClicked.bind(this));
         }
     }
 
@@ -49,18 +50,43 @@ export class FSMDesigner {
         //this._sandbox.unregisterListener('app-init', ???);
     }
 
-    onItemPressed(e) {
-        if (e.special && e.item instanceof State) {
-            let transition = new Transition({
-                position: e.point,
-                first: e.item
-            });
-            this._sandbox.sendMessage(this.ADD_ITEM, transition);
-            this._sandbox.sendMessage(this.BEGIN_DRAG, { item: transition, point: e.point });
+    changeEntryPoint(data) {
+        let current = this._sandbox.sendMessage(this.GET_ITEMS).find((item) => item instanceof State && item.isEntry === true);
+        if (!data.abortIfExists) {
+            current.setAsEntry(false);
+            data.item.setAsEntry(true);
+            this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+        } else if (!current) {
+            data.item.setAsEntry(true);
+            this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+        } 
+    }
+
+    stop() {
+        if (this.isRunning) {
+            this.isRunning = false;
         }
     }
 
-    onItemMoved(e) {
+    cleanUp() { }
+
+    _onItemPressed(e) {
+        if (e.item instanceof State) {
+            if (e.ctrlKey) {
+                let transition = new Transition({
+                    position: e.point,
+                    first: e.item
+                });
+                this._sandbox.sendMessage(this.ADD_ITEM, transition);
+                this._sandbox.sendMessage(this.BEGIN_DRAG, { item: transition, point: e.point });
+            }
+            else if(e.shiftKey) {
+                this.changeEntryPoint({ item: e.item });
+            }   
+        }
+    }
+
+    _onItemMoved(e) {
         if (e.item instanceof Transition && !e.item.isSet) {
             let itemAt = this._sandbox.sendMessage(this.GET_ITEM_AT, {
                 point: e.point,
@@ -77,7 +103,7 @@ export class FSMDesigner {
         }
     }
 
-    onDragEnded(e) {
+    _onDragEnded(e) {
         if (e.item instanceof Transition && !e.item.isSet) {
             let itemAt = this._sandbox.sendMessage(this.GET_ITEM_AT, {
                 point: e.point,
@@ -94,7 +120,7 @@ export class FSMDesigner {
         }
     }
 
-    onItemDeleted(e) {
+    _onItemDeleted(e) {
         if (e.item instanceof State) {
             let itemsToDelete = this._sandbox.sendMessage(this.GET_ITEMS, (item) => {
                 return item instanceof Transition && (item._firstItem === e.item || item._secondItem === e.item)
@@ -105,7 +131,7 @@ export class FSMDesigner {
         }
     }
 
-    onPointerDoubleClicked(e) {
+    _onPointerDoubleClicked(e) {
         let point = { x: e.x, y: e.y };
         let doubleClickedItem = this._sandbox.sendMessage(this.GET_ITEM_AT, {
             point: point,
@@ -114,22 +140,16 @@ export class FSMDesigner {
             }
         });
         if (doubleClickedItem) {
-            // TODO: Make accepting state
+            doubleClickedItem.accept(!doubleClickedItem.isAccepting);
+            this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
         }
         else {
             let state = new State({
                 position: point
             });
             this._sandbox.sendMessage(this.ADD_ITEM, state);
+            this.changeEntryPoint({ item: state, abortIfExists: true })
             this._sandbox.sendMessage(this.SELECT_ITEM, { item: state, point: e.point });
         }
     }
-
-    stop() {
-        if (this.isRunning) {
-            this.isRunning = false;
-        }
-    }
-
-    cleanUp() { }
 }

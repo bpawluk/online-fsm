@@ -8,6 +8,7 @@ export class Canvas {
         this.REDRAW_CANVAS = 'canvas-redraw';
         this.CANVAS_CLEARED_EVENT = 'canvas-cleared';
         this.CANVAS_DRAWN_EVENT = 'canvas-drawn';
+        //this.CANVAS_SIZE_CHANGING = 'canvas-size-changing';
         this.CANVAS_RESIZED_EVENT = 'canvas-resized';
 
         // Depends on:
