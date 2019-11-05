@@ -298,7 +298,6 @@ class Triangle extends Shape {
         context.lineTo(this._vertices.right.x, this._vertices.right.y);
         context.fill();
         context.stroke();
-        context.restore();
     }
 }
 
