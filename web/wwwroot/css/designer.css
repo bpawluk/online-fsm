@@ -1,26 +1,48 @@
-html {
+.workspace-wrapper {
+    padding-bottom: 40px;
+    width: 100%; 
     height: 100%; 
-    padding: 0;
-    margin: 0;
 }
 
-body {
-    text-align: center;
+.workspace-panel {
     padding: 0;
     margin: 0;
-    height: 100%;
+    width: 20%; 
+    height: 100%; 
+    display:inline-block;
+    background-color: #eeeeee;
+    overflow: auto;
 }
 
 #workspace {
     padding: 0;
     margin: 0;
-    line-height: 0;
+    width: 80%; 
+    height: 100%; 
+    display:inline-block;
+    overflow: auto;
+    line-height: 0px;
 }
 
-#canvas {
-    border: thin solid black
+.workspace-footer {
+    position: absolute;
+    background-image: linear-gradient(to bottom, white, #eeeeee);
+    border-style: solid;
+    border-width: 1px 0px 0px 0px;
+    border-color: #cdcdcd;
+    bottom: 0;
+    width: 100%;
+    height: 40px;
+    text-align: center;
 }
 
-#addState {
+.dock {
+    height: 100%;
+    display:inline-block;
+}
 
+.dock-item, .run-button {
+    height: 30px;
+    margin: 5px;
+    padding: 5px;
 }

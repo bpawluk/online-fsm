@@ -61,10 +61,7 @@ export class Canvas {
             height = this._size.height === 'auto' ? Math.max(appSize.height, this._minSize.height) : this._size.height;
             this._sandbox.registerListener(this.APP_RESIZED_EVENT, this._onAppResized.bind(this));
         }
-        this._canvas = this._sandbox.sendMessage(this.APPEND_DOM_ELEMENT, {
-            type: 'canvas', width: width, height: height//,
-            //style: { 'border-style': 'solid', 'border-width': '1px' }
-        });
+        this._canvas = this._sandbox.sendMessage(this.APPEND_DOM_ELEMENT, { type: 'canvas', width: width, height: height });
         this._context = this._canvas.getContext('2d', { alpha: false });
         if (this._isInteractive) {
             this._sandbox.sendMessage(this.MAKE_INTERACTIVE, this._canvas);

@@ -4,10 +4,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>@ViewData["Title"]</title>
+    <link href="~/css/site.css" rel="stylesheet" type="text/css">
     @RenderSection("Styles", required: false)
 </head>
 <body>
-    @RenderBody()
+    <div class="navbar">
+        <a asp-controller="Home" asp-action="Index">
+            <img class="site-logo"></img><div class="site-title"><p>FSM Simulator</p></div>
+        </a>
+        @RenderSection("NavbarContent", required: false)
+    </div>
+    <div class="content">@RenderBody()</div>
     @RenderSection("Scripts", required: false)
 </body>
 </html>
