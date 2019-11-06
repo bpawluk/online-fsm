@@ -26,6 +26,7 @@ export class Workspace {
         this.REDRAW_CANVAS = 'canvas-redraw';
         this.PREVENT_SCROLLING = 'prevent-scrolling';
         this.APP_INIT_EVENT = 'app-init';
+        this.CANVAS_RESIZED_EVENT = 'canvas-resized';
         this.POINTER_DOWN_EVENT = 'pointer-down';
         this.POINTER_MOVE_EVENT = 'pointer-move';
         this.POINTER_UP_EVENT = 'pointer-up';
@@ -72,6 +73,7 @@ export class Workspace {
             this._sandbox.registerListener(this.POINTER_DOWN_EVENT, this._handlePointerDown.bind(this));
             this._sandbox.registerListener(this.POINTER_MOVE_EVENT, this._handlePointerMove.bind(this));
             this._sandbox.registerListener(this.POINTER_UP_EVENT, this._handlePointerUp.bind(this));
+            this._sandbox.registerListener(this.CANVAS_RESIZED_EVENT, this._onCanvasResized.bind(this));
             this._sandbox.registerListener(this.KEY_DOWN, this._handleKeyDown.bind(this));
             this._sandbox.registerMessageReceiver(this.ADD_ITEM, this.addItem.bind(this));
             this._sandbox.registerMessageReceiver(this.REMOVE_ITEM, this.removeItem.bind(this));
@@ -127,7 +129,7 @@ export class Workspace {
     }
 
     getItems(predicate) {
-        if(!predicate){
+        if (!predicate) {
             return this._items.slice();
         } else {
             return this._items.filter(predicate);
@@ -145,7 +147,7 @@ export class Workspace {
                 this._sandbox.sendMessage(this.PREVENT_SCROLLING, false);
             }
         }
-        
+
     }
 
     endDrag(point) {
@@ -278,5 +280,9 @@ export class Workspace {
             this.removeItem(toDelete);
             this._sandbox.raiseEvent(this.ITEM_DELETED_EVENT, { item: toDelete });
         }
+    }
+
+    _onCanvasResized(e) {
+        this.refresh();
     }
 }

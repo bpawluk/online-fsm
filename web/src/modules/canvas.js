@@ -96,6 +96,7 @@ export class Canvas {
     resize(size) {
         this._canvas.width = size.width;
         this._canvas.height = size.height;
+        this.clear();
         this._sandbox.raiseEvent(this.CANVAS_RESIZED_EVENT, size);
     }
 
