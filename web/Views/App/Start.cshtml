@@ -1,5 +1,8 @@
+@section Styles {
 <link href="~/css/designer.css" rel="stylesheet" type="text/css">
+}
 <div id="workspace" style="width:100%; height:100%; overflow:auto"></div>
+@section Scripts{
 <environment include="Development">
     <script type="module" src="~/app.js"></script>
     <script type="module" src="~/common-utils.js"></script>
@@ -18,4 +21,4 @@
 <environment exclude="Development">
     <script src="~/js/designer.js"></script>
 </environment>
-
+}
