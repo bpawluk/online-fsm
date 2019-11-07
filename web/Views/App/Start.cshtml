@@ -1,15 +1,22 @@
 <div class="workspace-wrapper">
-    <div id="workspace"></div><div class="workspace-panel"></div>
+    <div id="workspace"></div>
     <div class="workspace-footer">
         <div class="dock">
-            <button class="dock-item">
-                <p>TEST</p>
-            </button>
+            <button id="add" class="dock-item">Add</button>
+            <button id="connect" class="dock-item">Connect</button>
+            <button id="accept" class="dock-item">Accept</button>
+            <button id="initial" class="dock-item">Initial</button>
+            <button id="delete" class="dock-item">Delete</button>
         </div>
     </div>
 </div>
 @section NavbarContent {
-    <button class="run-button" style="float: right;">RUN</button>
+    <div class="top-panel">
+        <button class="top-button">New</button>
+        <button class="top-button">Save</button>
+        <button class="top-button">Load</button>
+        <button class="top-button">Run</button>
+    </div>
 }
 @section Styles {
 <link href="~/css/designer.css" rel="stylesheet" type="text/css">

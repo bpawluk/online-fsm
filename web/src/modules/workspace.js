@@ -9,6 +9,7 @@ export class Workspace {
         this.BEGIN_DRAG = 'workspace-begin-drag';
         this.END_DRAG = 'workspace-end-drag';
         this.SELECT_ITEM = 'workspace-select-item';
+        this.GET_SELECTED_ITEM = 'workspace-get-selection';
         this.GET_ITEM_AT = 'workspace-get-item';
         this.GET_ITEMS = 'workspace-get-items';
         this.REFRESH_WORKSPACE = 'workspace-refresh';
@@ -20,6 +21,7 @@ export class Workspace {
         this.ITEM_POINTER_OVER_CHANGED_EVENT = 'workspace-item-pointer-over-changed';
         this.ITEM_SELECTION_CHANGED_EVENT = 'workspace-item-selection-changed';
 
+
         // Depends on:
         this.CLEAR_CANVAS = 'canvas-clear';
         this.DRAW_ON_CANVAS = 'canvas-draw';
@@ -30,7 +32,8 @@ export class Workspace {
         this.POINTER_DOWN_EVENT = 'pointer-down';
         this.POINTER_MOVE_EVENT = 'pointer-move';
         this.POINTER_UP_EVENT = 'pointer-up';
-        this.KEY_DOWN = 'key-down'
+        this.KEY_DOWN_EVENT = 'key-down'
+        this.BUTTON_CLICKED_EVENT = 'button-clicked';
 
         // Requires interfaces:
         this.DRAWABLE_INTERFACE = 'drawable-interface';
@@ -74,7 +77,8 @@ export class Workspace {
             this._sandbox.registerListener(this.POINTER_MOVE_EVENT, this._handlePointerMove.bind(this));
             this._sandbox.registerListener(this.POINTER_UP_EVENT, this._handlePointerUp.bind(this));
             this._sandbox.registerListener(this.CANVAS_RESIZED_EVENT, this._onCanvasResized.bind(this));
-            this._sandbox.registerListener(this.KEY_DOWN, this._handleKeyDown.bind(this));
+            this._sandbox.registerListener(this.KEY_DOWN_EVENT, this._handleKeyDown.bind(this));
+            this._sandbox.registerListener(this.BUTTON_CLICKED_EVENT, this._handleButtonClicked.bind(this));
             this._sandbox.registerMessageReceiver(this.ADD_ITEM, this.addItem.bind(this));
             this._sandbox.registerMessageReceiver(this.REMOVE_ITEM, this.removeItem.bind(this));
             this._sandbox.registerMessageReceiver(this.MOVE_ITEM, this.moveItem.bind(this));
@@ -82,6 +86,7 @@ export class Workspace {
             this._sandbox.registerMessageReceiver(this.BEGIN_DRAG, this.beginDrag.bind(this));
             this._sandbox.registerMessageReceiver(this.END_DRAG, this.endDrag.bind(this));
             this._sandbox.registerMessageReceiver(this.GET_ITEM_AT, this.getItemAt.bind(this));
+            this._sandbox.registerMessageReceiver(this.GET_SELECTED_ITEM, () => this._selectedItem);
             this._sandbox.registerMessageReceiver(this.GET_ITEMS, this.getItems.bind(this));
             this._sandbox.registerMessageReceiver(this.REFRESH_WORKSPACE, this.refresh.bind(this));
             this.isRunning = true;
@@ -226,6 +231,7 @@ export class Workspace {
             this._sandbox.unregisterMessageReceiver(this.BEGIN_DRAG);
             this._sandbox.unregisterMessageReceiver(this.END_DRAG);
             this._sandbox.unregisterMessageReceiver(this.GET_ITEM_AT);
+            this._sandbox.unregisterMessageReceiver(this.GET_SELECTED_ITEM);
             this._sandbox.unregisterMessageReceiver(this.GET_ITEMS);
             this._sandbox.unregisterMessageReceiver(this.REFRESH_WORKSPACE);
             // this._sandbox.unregisterListener(this.POINTER_DOWN_EVENT, this._handlePointerDown.bind(this));
@@ -273,12 +279,22 @@ export class Workspace {
         }
     }
 
+    _deleteSelected() {
+        let toDelete = this._selectedItem;
+        this.selectItem({ item: null });
+        this.removeItem(toDelete);
+        this._sandbox.raiseEvent(this.ITEM_DELETED_EVENT, { item: toDelete });
+    }
+
     _handleKeyDown(e) {
         if (e.key === 'Delete' && this._selectedItem) {
-            let toDelete = this._selectedItem;
-            this.selectItem({ item: null });
-            this.removeItem(toDelete);
-            this._sandbox.raiseEvent(this.ITEM_DELETED_EVENT, { item: toDelete });
+            this._deleteSelected();
+        }
+    }
+
+    _handleButtonClicked(button) {
+        if (button.id === 'delete') {
+            this._deleteSelected();
         }
     }
 

@@ -11,6 +11,7 @@ export class FSMDesigner {
         this.REMOVE_ITEM = 'workspace-remove-item';
         this.BEGIN_DRAG = 'workspace-begin-drag';
         this.SELECT_ITEM = 'workspace-select-item';
+        this.GET_SELECTED_ITEM = 'workspace-get-selection';
         this.GET_ITEM_AT = 'workspace-get-item';
         this.GET_ITEMS = 'workspace-get-items';
         this.REFRESH_WORKSPACE = 'workspace-refresh';
@@ -20,6 +21,7 @@ export class FSMDesigner {
         this.ITEM_DRAG_ENDED_EVENT = 'workspace-drag-ended';
         this.ITEM_DELETED_EVENT = 'workspace-item-deleted';
         this.DOUBLE_CLICK_EVENT = 'double-click';
+        this.BUTTON_CLICKED_EVENT = 'button-clicked';
 
         // Requires interfaces:
 
@@ -43,6 +45,7 @@ export class FSMDesigner {
             this._sandbox.registerListener(this.ITEM_DRAG_ENDED_EVENT, this._onDragEnded.bind(this));
             this._sandbox.registerListener(this.ITEM_DELETED_EVENT, this._onItemDeleted.bind(this));
             this._sandbox.registerListener(this.DOUBLE_CLICK_EVENT, this._onPointerDoubleClicked.bind(this));
+            this._sandbox.registerListener(this.BUTTON_CLICKED_EVENT, this._onButtonClicked.bind(this));
         }
     }
 
@@ -50,16 +53,41 @@ export class FSMDesigner {
         //this._sandbox.unregisterListener('app-init', ???);
     }
 
+    addState(point) {
+        point = point || { x: 50, y: 50 }
+        let state = new State({
+            position: point
+        });
+        this._sandbox.sendMessage(this.ADD_ITEM, state);
+        this.changeEntryPoint({ item: state, abortIfExists: true })
+        this._sandbox.sendMessage(this.SELECT_ITEM, { item: state, point: point });
+    }
+
+    beginConnecting(item, point) {
+        point = point || item.getPosition();
+        let transition = new Transition({
+            position: point,
+            first: item
+        });
+        this._sandbox.sendMessage(this.ADD_ITEM, transition);
+        this._sandbox.sendMessage(this.BEGIN_DRAG, { item: transition, point: point });
+    }
+
+    makeAccepting(state) {
+        state.accept(!state.isAccepting);
+        this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+    }
+
     changeEntryPoint(data) {
         let current = this._sandbox.sendMessage(this.GET_ITEMS).find((item) => item instanceof State && item.isEntry === true);
-        if (!data.abortIfExists) {
+        if (!data.abortIfExists && current) {
             current.setAsEntry(false);
             data.item.setAsEntry(true);
             this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
         } else if (!current) {
             data.item.setAsEntry(true);
             this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
-        } 
+        }
     }
 
     stop() {
@@ -73,16 +101,11 @@ export class FSMDesigner {
     _onItemPressed(e) {
         if (e.item instanceof State) {
             if (e.ctrlKey) {
-                let transition = new Transition({
-                    position: e.point,
-                    first: e.item
-                });
-                this._sandbox.sendMessage(this.ADD_ITEM, transition);
-                this._sandbox.sendMessage(this.BEGIN_DRAG, { item: transition, point: e.point });
+                this.beginConnecting(e.item, e.point);
             }
-            else if(e.shiftKey) {
+            else if (e.shiftKey) {
                 this.changeEntryPoint({ item: e.item });
-            }   
+            }
         }
     }
 
@@ -128,6 +151,12 @@ export class FSMDesigner {
             itemsToDelete.forEach(item => {
                 this._sandbox.sendMessage(this.REMOVE_ITEM, item);
             });
+            if (e.item.isEntry) {
+                let states = this._sandbox.sendMessage(this.GET_ITEMS, (item) => item instanceof State);
+                if (states && states.length > 0) {
+                    this.changeEntryPoint({item: states[0]});
+                }
+            }
         }
     }
 
@@ -140,16 +169,34 @@ export class FSMDesigner {
             }
         });
         if (doubleClickedItem) {
-            doubleClickedItem.accept(!doubleClickedItem.isAccepting);
-            this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+            this.makeAccepting(doubleClickedItem);
         }
         else {
-            let state = new State({
-                position: point
-            });
-            this._sandbox.sendMessage(this.ADD_ITEM, state);
-            this.changeEntryPoint({ item: state, abortIfExists: true })
-            this._sandbox.sendMessage(this.SELECT_ITEM, { item: state, point: e.point });
+            this.addState(point);
+        }
+    }
+
+    _onButtonClicked(button) {
+        let selected = this._sandbox.sendMessage(this.GET_SELECTED_ITEM);
+        switch (button.id) {
+            case 'add':
+                this.addState();
+                break;
+            case 'connect':
+                if (selected) {
+                    this.beginConnecting(selected);
+                }
+                break;
+            case 'accept':
+                if (selected) {
+                    this.makeAccepting(selected);
+                }
+                break;
+            case 'initial':
+                if (selected) {
+                    this.changeEntryPoint({ item: selected });
+                }
+                break;
         }
     }
 }

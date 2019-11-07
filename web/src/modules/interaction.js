@@ -9,9 +9,11 @@ export class Interaction {
         this.POINTER_DOWN_EVENT = 'pointer-down';
         this.POINTER_MOVE_EVENT = 'pointer-move';
         this.POINTER_UP_EVENT = 'pointer-up';
-        this.KEY_DOWN = 'key-down'
+        this.KEY_DOWN_EVENT = 'key-down'
+        this.BUTTON_CLICKED_EVENT = 'button-clicked';
 
         // Depends on:
+        this.GET_ELEMENTS_BY_TAG = 'get-element-by-tag';
         this.APP_INIT_EVENT = 'app-init';
 
         // Requires interfaces:
@@ -27,7 +29,8 @@ export class Interaction {
         this._sandbox.createEvent(this.POINTER_DOWN_EVENT);
         this._sandbox.createEvent(this.POINTER_MOVE_EVENT);
         this._sandbox.createEvent(this.POINTER_UP_EVENT);
-        this._sandbox.createEvent(this.KEY_DOWN);
+        this._sandbox.createEvent(this.KEY_DOWN_EVENT);
+        this._sandbox.createEvent(this.BUTTON_CLICKED_EVENT);
     }
 
     init() {
@@ -49,6 +52,12 @@ export class Interaction {
 
     onAppInit() {
         //this._sandbox.unregisterListener('app-init', ???)
+        let buttons = this._sandbox.sendMessage(this.GET_ELEMENTS_BY_TAG, 'button')
+        if (buttons) {
+            buttons.forEach(button => {
+                button.addEventListener('click', this._handleButtonClick.bind(this));
+            });
+        }
     }
 
     makeInteractive(element) {
@@ -81,6 +90,8 @@ export class Interaction {
         this._sandbox.deleteEvent(this.POINTER_DOWN_EVENT);
         this._sandbox.deleteEvent(this.POINTER_MOVE_EVENT);
         this._sandbox.deleteEvent(this.POINTER_UP_EVENT);
+        this._sandbox.deleteEvent(this.KEY_DOWN_EVENT);
+        this._sandbox.deleteEvent(this.BUTTON_CLICKED_EVENT);
     }
 
     _getPointInElement(element, clientX, clientY) {
@@ -139,6 +150,10 @@ export class Interaction {
     }
 
     _handleKeyDown(e) {
-        this._sandbox.raiseEvent(this.KEY_DOWN, { target: e.target, key: e.key });
+        this._sandbox.raiseEvent(this.KEY_DOWN_EVENT, { target: e.target, key: e.key });
+    }
+
+    _handleButtonClick(e) {
+        this._sandbox.raiseEvent(this.BUTTON_CLICKED_EVENT, e.target);
     }
 }

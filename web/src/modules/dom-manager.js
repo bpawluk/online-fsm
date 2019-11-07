@@ -6,6 +6,7 @@ export class DomManager {
     constructor(sandbox, config) {
         // Provides:
         this.APPEND_DOM_ELEMENT = 'append-dom-element';
+        this.GET_ELEMENTS_BY_TAG = 'get-element-by-tag';
         this.GET_APP_SIZE = 'get-app-size';
         this.APP_RESIZED_EVENT = 'app-resized';
 
@@ -39,6 +40,7 @@ export class DomManager {
     start() {
         if (!this.isRunning) {
             this._sandbox.registerMessageReceiver(this.APPEND_DOM_ELEMENT, this.appendDomElement.bind(this));
+            this._sandbox.registerMessageReceiver(this.GET_ELEMENTS_BY_TAG, this.getElementsByTag);
             this._sandbox.registerMessageReceiver(this.GET_APP_SIZE, this.getAppSize.bind(this));
             window.addEventListener('resize', this._windowResizedBind)
         }
@@ -81,6 +83,10 @@ export class DomManager {
         return elementToAppend;
     }
 
+    getElementsByTag(tag) {
+        return Array.from(document.getElementsByTagName(tag));
+    }
+
     getAppSize() {
         let data = this._outerDiv.getBoundingClientRect();
         return {
@@ -94,6 +100,8 @@ export class DomManager {
             this.isRunning = false;
             window.removeEventListener('resize', this._windowResizedBind)
             this._sandbox.unregisterMessageReceiver(this.APPEND_DOM_ELEMENT);
+            this._sandbox.unregisterMessageReceiver(this.GET_ELEMENTS_BY_TAG);
+            this._sandbox.unregisterMessageReceiver(this.GET_APP_SIZE);
         }
     }
 
