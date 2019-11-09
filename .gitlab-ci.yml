@@ -1,0 +1,26 @@
+stages:
+  - build
+  - test
+  - deploy
+
+build-backend:
+  image: microsoft/dotnet:latest
+  stage: build
+  script:
+    - "cd web"
+    - "dotnet restore"
+    - "dotnet build"
+
+test-frontend:
+  image: node:12.13.0
+  stage: test
+  script: 
+    - "cd web"
+    - "npm test"
+
+minify:
+  image: node:12.13.0
+  stage: deploy
+  script: 
+    - "cd web"
+    - "npm run minify"

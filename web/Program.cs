@@ -16,7 +16,7 @@ namespace aspnetcoreapp
     {
         public static void Main(string[] args)
         {
-            CreateWebHostBuilder(args).UseUrls("http://localhost:5001", $"http://{LocalIPAddress()}:5001").Build().Run();
+            CreateWebHostBuilder(args).UseUrls("http://localhost:80", $"http://{LocalIPAddress()}:80").Build().Run();
         }
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args)
