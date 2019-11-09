@@ -439,6 +439,10 @@ export class State extends Circle {
         this._textBox.setText(text);
     }
 
+    getText() {
+        return this._textBox._text;
+    }
+
     move(point) {
         super.move(point);
         this._textBox.move(this._position);
@@ -513,6 +517,10 @@ export class Transition extends Shape {
 
     setText(text) {
         this._textBox.setText(text);
+    }
+
+    getText() {
+        return this._textBox._text;
     }
 
     isSelfLink() {

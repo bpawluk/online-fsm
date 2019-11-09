@@ -15,6 +15,8 @@ export class FSMDesigner {
         this.GET_ITEM_AT = 'workspace-get-item';
         this.GET_ITEMS = 'workspace-get-items';
         this.REFRESH_WORKSPACE = 'workspace-refresh';
+        this.SHOW_POPUP = 'popup-show';
+        this.HIDE_POPUP = 'popup-hide';
         this.APP_INIT_EVENT = 'app-init';
         this.ITEM_MOVED_EVENT = 'workspace-item-moved';
         this.ITEM_PRESSED_EVENT = 'workspace-item-pressed';
@@ -154,7 +156,7 @@ export class FSMDesigner {
             if (e.item.isEntry) {
                 let states = this._sandbox.sendMessage(this.GET_ITEMS, (item) => item instanceof State);
                 if (states && states.length > 0) {
-                    this.changeEntryPoint({item: states[0]});
+                    this.changeEntryPoint({ item: states[0] });
                 }
             }
         }
@@ -195,6 +197,31 @@ export class FSMDesigner {
             case 'initial':
                 if (selected) {
                     this.changeEntryPoint({ item: selected });
+                }
+                break;
+            case 'edit':
+                if (selected) {
+                    let oldText = selected.getText();
+                    this._sandbox.sendMessage(this.SHOW_POPUP, {
+                        message: 'Please enter new name for the state',
+                        input: [{ name: 'state-name', label: 'State name' }],
+                        buttons: [{
+                            text: 'Save',
+                            onClick: (e) => {
+                                let result = this._sandbox.sendMessage(this.HIDE_POPUP);
+                                selected.setText(result.find((e) => e.name === 'state-name').value);
+                                this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+                            }
+                        },
+                        {
+                            text: 'Cancel',
+                            onClick: (e) => {
+                                this._sandbox.sendMessage(this.HIDE_POPUP)
+                                selected.setText(oldText);
+                                this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+                            }
+                        }]
+                    });
                 }
                 break;
         }

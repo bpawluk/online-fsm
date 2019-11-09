@@ -8,10 +8,13 @@ export class DomManager {
         this.APPEND_DOM_ELEMENT = 'append-dom-element';
         this.GET_ELEMENTS_BY_TAG = 'get-element-by-tag';
         this.GET_APP_SIZE = 'get-app-size';
+        this.SHOW_POPUP = 'popup-show';
+        this.HIDE_POPUP = 'popup-hide';
         this.APP_RESIZED_EVENT = 'app-resized';
 
         // Depends on:
         this.APP_INIT_EVENT = 'app-init';
+        this.KEY_DOWN_EVENT = 'key-down'
 
         // Requires interfaces:
 
@@ -25,6 +28,7 @@ export class DomManager {
         this.isRunning = false;
         this._sandbox = sandbox;
         this._outerDiv = document.getElementById(config.entrypoint);
+        this._popup = this._createPopupContainer();
 
         this._sandbox.createEvent(this.APP_RESIZED_EVENT);
     }
@@ -39,9 +43,12 @@ export class DomManager {
 
     start() {
         if (!this.isRunning) {
+            this._sandbox.registerListener(this.KEY_DOWN_EVENT, this._onKeyPressed.bind(this));
             this._sandbox.registerMessageReceiver(this.APPEND_DOM_ELEMENT, this.appendDomElement.bind(this));
             this._sandbox.registerMessageReceiver(this.GET_ELEMENTS_BY_TAG, this.getElementsByTag);
             this._sandbox.registerMessageReceiver(this.GET_APP_SIZE, this.getAppSize.bind(this));
+            this._sandbox.registerMessageReceiver(this.SHOW_POPUP, this.showPopup.bind(this));
+            this._sandbox.registerMessageReceiver(this.HIDE_POPUP, this.hidePopup.bind(this));
             window.addEventListener('resize', this._windowResizedBind)
         }
     }
@@ -84,7 +91,7 @@ export class DomManager {
     }
 
     getElementsByTag(tag) {
-        return Array.from(document.getElementsByTagName(tag));
+        return Array.prototype.slice.call(document.getElementsByTagName(tag));
     }
 
     getAppSize() {
@@ -93,6 +100,68 @@ export class DomManager {
             width: data.width,
             height: data.height
         };
+    }
+
+    showPopup(data) {
+        this._popup.container.style['display'] = 'flex';
+
+        data = data || {};
+
+        if (data.message) {
+            this._popup.text.innerText = data.message;
+        }
+
+        if (data.input) {
+            data.input.forEach(input => {
+                let label = document.createElement('label');
+                label.for = input.name;
+                label.innerText = input.label;
+                label.style['display'] = 'block';
+                label.style['font-size'] = '0.8em';
+                this._popup.input.appendChild(label);
+                let ipt = document.createElement('input');
+                ipt.type = 'text';
+                ipt.id = input.name;
+                ipt.name = input.name;
+                ipt.style['display'] = 'block';
+                ipt.style['width'] = '100%';
+                ipt.style['margin-bottom'] = '5px';
+                ipt.addEventListener('input', input.onChange)
+                this._popup.input.appendChild(ipt);
+            });
+        }
+
+        if (data.buttons) {
+            data.buttons.forEach(button => {
+                let btn = document.createElement('button');
+                btn.innerText = button.text;
+                btn.style['padding'] = '3px';
+                btn.style['display'] = 'inline-block';
+                btn.addEventListener('click', button.onClick);
+                this._popup.buttons.appendChild(btn);
+            });
+        }
+    }
+
+    hidePopup() {
+        let data = null;
+        this._popup.text.innerText = '';
+        
+        let input = Array.prototype.slice.call(this._popup.input.getElementsByTagName('input'));
+        if (input) {
+            data = [];
+            input.forEach((ipt) => data.push({ name: ipt.name, value: ipt.value }));
+        }
+
+        this.removeChildren(this._popup.input);
+        this.removeChildren(this._popup.buttons);
+        this._popup.container.style['display'] = 'none';
+        return data;
+    }
+
+    removeChildren(element) {
+        let children = Array.prototype.slice.call(element.childNodes);
+        children.forEach(child => child.parentNode.removeChild(child));
     }
 
     stop() {
@@ -107,7 +176,60 @@ export class DomManager {
 
     cleanUp() { }
 
+    _createPopupContainer() {
+        let container = document.createElement('div');
+        container.style['background-color'] = 'rgba(0,0,0,0.7)';
+        container.style['position'] = 'fixed';
+        container.style['top'] = 0;
+        container.style['right'] = 0;
+        container.style['bottom'] = 0;
+        container.style['left'] = 0;
+        container.style['display'] = 'none';
+        container.style['align-items'] = 'center';
+        container.style['justify-content'] = 'center';
+        container.style['z-index'] = 99;
+
+        let content = document.createElement('div');
+        content.style['background'] = '#FFFFFF';
+        content.style['max-height'] = '75%';
+        content.style['max-width'] = '75%';
+        content.style['padding'] = '10px';
+        content.style['border-style'] = 'solid';
+        content.style['border-width'] = '1px';
+        content.style['border-color'] = '#333333';
+        container.appendChild(content);
+
+        let text = document.createElement('p');
+        text.id = 'message';
+        text.style['margin-bottom'] = '8px';
+        content.appendChild(text);
+
+        let input = document.createElement('div');
+        input.id = 'input';
+        input.style['margin-bottom'] = '8px';
+        content.appendChild(input);
+
+        let buttons = document.createElement('div');
+        buttons.id = 'buttons';
+        buttons.style['text-align'] = 'center';
+        content.appendChild(buttons);
+
+        document.body.appendChild(container);
+        return {
+            container: container,
+            text: text,
+            input: input,
+            buttons: buttons
+        };
+    }
+
     _onWindowResized(e) {
         this._sandbox.raiseEvent(this.APP_RESIZED_EVENT, this.getAppSize());
+    }
+
+    _onKeyPressed(e) {
+        if (e.key === 'Escape') {
+            this.hidePopup();
+        }
     }
 }
