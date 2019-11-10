@@ -7,35 +7,30 @@ build-backend:
   image: mcr.microsoft.com/dotnet/core/sdk:3.0
   stage: build
   script:
-    - "cd web"
-    - "dotnet restore"
-    - "dotnet build"
+    - cd web
+    - dotnet restore
+    - dotnet build
 
 test-frontend:
   image: node:12.13.0
   stage: test
   before_script:
-    - "cd web"
-    - "npm install"
+    - cd web
+    - npm install
   script: 
-    - "npm test"
+    - npm test
 
-minify:
+deploy-app:
   image: node:12.13.0
   stage: deploy
   before_script:
-    - "cd web"
-    - "npm install"
-  script: 
-    - "npm run minify"
-
-deploy-backend:
-  stage: deploy
-  before_script:
+    - cd web
+    - npm install
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
     - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - echo "$SSH_PRIV_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
   script: 
+    - npm run minify
     - ssh bpawl@92.222.72.170 "cd ~/workspace && bash deploy.sh"
