@@ -4,7 +4,7 @@ stages:
   - deploy
 
 build-backend:
-  image: microsoft/dotnet:latest
+  image: mcr.microsoft.com/dotnet/core/sdk:3.0
   stage: build
   script:
     - "cd web"
