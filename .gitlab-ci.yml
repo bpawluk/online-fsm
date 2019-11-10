@@ -15,18 +15,18 @@ test-frontend:
   image: node:12.13.0
   stage: test
   before_script:
-    - npm install
-  script: 
     - "cd web"
+    - "npm install"
+  script: 
     - "npm test"
 
 minify:
   image: node:12.13.0
   stage: deploy
   before_script:
-    - npm install
-  script: 
     - "cd web"
+    - "npm install"
+  script: 
     - "npm run minify"
 
 deploy-backend:
