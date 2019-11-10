@@ -31,7 +31,7 @@ deploy-app:
     - echo "$SSH_PRIV_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - ssh-keyscan -H -t rsa ip_or_ipalias  >> ~/.ssh/known_hosts
+    - ssh-keyscan -H -t rsa 92.222.72.170  >> ~/.ssh/known_hosts
   script: 
     - npm run minify
     - ssh bpawl@92.222.72.170 "cd ~/workspace && bash deploy.sh"
