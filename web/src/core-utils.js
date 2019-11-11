@@ -1,7 +1,7 @@
 'use strict'
 import { ArrayUtils } from './common-utils.js';
 
-class Interface {
+export class Interface {
     constructor(name, methods, properties) {
         this._name = name;
         this._methods = methods || [];
@@ -37,27 +37,29 @@ class Interface {
         for (let i = 0, len = this._properties.length; i < len; i++) {
             let currentMember = this._properties[i];
             if (obj[currentMember] === undefined || typeof obj[currentMember] === 'function') {
-                throw new Error('Object does not implement the interface ' + this._name+ '. Missing properties: ' + currentMember);
+                throw new Error('Object does not implement the interface ' + this._name + '. Missing properties: ' + currentMember);
             }
         }
     }
 }
 
-class Event {
+export class Event {
     constructor() {
         this._listeners = [];
     }
 
     registerListener(listener) {
-        if (!listener || typeof listener !== 'function') {
+        if (!listener || !listener.callback || typeof listener.callback !== 'function') {
             throw new Error('Event listener has to be of type function');
         }
-        this._listeners.push(listener);
+        
+        if(!this._listeners.find(item => item.callback === listener.callback)) {
+            this._listeners.push(listener);
+        }
     }
 
-    //TO DO: Some way to actually unregister
-    unregisterListener(listener) {
-        return ArrayUtils.remove(listener, this._listeners)
+    unregisterListener(callback) {
+        return ArrayUtils.remove(this._listeners.find(item => item.callback === callback), this._listeners)
     }
 
     clear() {
@@ -65,9 +67,14 @@ class Event {
     }
 
     invoke(args) {
-        const listeners = this._listeners;
+        const listeners = this._listeners.slice();
         for (let i = 0, len = listeners.length; i < len; i++) {
-            listeners[i](args);
+            const current = listeners[i];
+            if (current.thisArg) {
+                current.callback.call(current.thisArg, args);
+            } else {
+                current.callback(args);
+            }
         }
     }
 }

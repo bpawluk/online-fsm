@@ -23,6 +23,7 @@ export class FSMDesigner {
         this.ITEM_DRAG_ENDED_EVENT = 'workspace-drag-ended';
         this.ITEM_DELETED_EVENT = 'workspace-item-deleted';
         this.DOUBLE_CLICK_EVENT = 'double-click';
+        this.KEY_DOWN_EVENT = 'key-down'
         this.BUTTON_CLICKED_EVENT = 'button-clicked';
 
         // Requires interfaces:
@@ -30,11 +31,13 @@ export class FSMDesigner {
         this.isInit = false;
         this.isRunning = false;
         this._sandbox = sandbox;
+
+        this._lastNum = 0;
     }
 
     init() {
         if (!this.isInit) {
-            this._sandbox.registerListener(this.APP_INIT_EVENT, this.onAppInit.bind(this));
+            this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
             this.isInit = true;
             this.start();
         }
@@ -42,22 +45,24 @@ export class FSMDesigner {
 
     start() {
         if (!this.isRunning) {
-            this._sandbox.registerListener(this.ITEM_MOVED_EVENT, this._onItemMoved.bind(this));
-            this._sandbox.registerListener(this.ITEM_PRESSED_EVENT, this._onItemPressed.bind(this));
-            this._sandbox.registerListener(this.ITEM_DRAG_ENDED_EVENT, this._onDragEnded.bind(this));
-            this._sandbox.registerListener(this.ITEM_DELETED_EVENT, this._onItemDeleted.bind(this));
-            this._sandbox.registerListener(this.DOUBLE_CLICK_EVENT, this._onPointerDoubleClicked.bind(this));
-            this._sandbox.registerListener(this.BUTTON_CLICKED_EVENT, this._onButtonClicked.bind(this));
+            this._sandbox.registerListener(this.ITEM_MOVED_EVENT, { callback: this._onItemMoved, thisArg: this });
+            this._sandbox.registerListener(this.ITEM_PRESSED_EVENT, { callback: this._onItemPressed, thisArg: this });
+            this._sandbox.registerListener(this.ITEM_DRAG_ENDED_EVENT, { callback: this._onDragEnded, thisArg: this });
+            this._sandbox.registerListener(this.ITEM_DELETED_EVENT, { callback: this._onItemDeleted, thisArg: this });
+            this._sandbox.registerListener(this.DOUBLE_CLICK_EVENT, { callback: this._onPointerDoubleClicked, thisArg: this });
+            this._sandbox.registerListener(this.KEY_DOWN_EVENT, { callback: this._onKeyDown, thisArg: this });
+            this._sandbox.registerListener(this.BUTTON_CLICKED_EVENT, { callback: this._onButtonClicked, thisArg: this });
         }
     }
 
     onAppInit() {
-        //this._sandbox.unregisterListener('app-init', ???);
+        this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
     }
 
     addState(point) {
         point = point || { x: 50, y: 50 }
         let state = new State({
+            text: 'S' + this._lastNum++,
             position: point
         });
         this._sandbox.sendMessage(this.ADD_ITEM, state);
@@ -65,9 +70,34 @@ export class FSMDesigner {
         this._sandbox.sendMessage(this.SELECT_ITEM, { item: state, point: point });
     }
 
+    beginEditState(state) {
+        this._sandbox.unregisterListener(this.KEY_DOWN_EVENT, this._onKeyDown);
+        let oldText = state.getText();
+        let save = () => {
+            let result = this._sandbox.sendMessage(this.HIDE_POPUP);
+            state.setText(result.find((e) => e.name === 'state-name').value);
+            this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+            this._sandbox.registerListener(this.KEY_DOWN_EVENT, { callback: this._onKeyDown, thisArg: this });
+        };
+        let cancel = () => {
+            this._sandbox.sendMessage(this.HIDE_POPUP)
+            state.setText(oldText);
+            this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+            this._sandbox.registerListener(this.KEY_DOWN_EVENT, { callback: this._onKeyDown, thisArg: this });
+        };
+        this._sandbox.sendMessage(this.SHOW_POPUP, {
+            message: 'Please enter new name for the state',
+            input: [{ name: 'state-name', label: 'State name' }],
+            buttons: [{ text: 'Save', onClick: save }, { text: 'Cancel', onClick: cancel }],
+            onEscape: cancel,
+            onEnter: save
+        });
+    }
+
     beginConnecting(item, point) {
         point = point || item.getPosition();
         let transition = new Transition({
+            text: '$',
             position: point,
             first: item
         });
@@ -95,6 +125,13 @@ export class FSMDesigner {
     stop() {
         if (this.isRunning) {
             this.isRunning = false;
+            this._sandbox.unregisterListener(this.ITEM_MOVED_EVENT, this._onItemMoved);
+            this._sandbox.unregisterListener(this.ITEM_PRESSED_EVENT, this._onItemPressed);
+            this._sandbox.unregisterListener(this.ITEM_DRAG_ENDED_EVENT, this._onDragEnded);
+            this._sandbox.unregisterListener(this.ITEM_DELETED_EVENT, this._onItemDeleted);
+            this._sandbox.unregisterListener(this.DOUBLE_CLICK_EVENT, this._onPointerDoubleClicked);
+            this._sandbox.unregisterListener(this.KEY_DOWN_EVENT, this._onKeyDown);
+            this._sandbox.unregisterListener(this.BUTTON_CLICKED_EVENT, this._onButtonClicked);
         }
     }
 
@@ -178,6 +215,15 @@ export class FSMDesigner {
         }
     }
 
+    _onKeyDown(e) {
+        if (e.key === 'Enter') {
+            let selected = this._sandbox.sendMessage(this.GET_SELECTED_ITEM);
+            if (selected) {
+                this.beginEditState(selected);
+            }
+        }
+    }
+
     _onButtonClicked(button) {
         let selected = this._sandbox.sendMessage(this.GET_SELECTED_ITEM);
         switch (button.id) {
@@ -201,27 +247,7 @@ export class FSMDesigner {
                 break;
             case 'edit':
                 if (selected) {
-                    let oldText = selected.getText();
-                    this._sandbox.sendMessage(this.SHOW_POPUP, {
-                        message: 'Please enter new name for the state',
-                        input: [{ name: 'state-name', label: 'State name' }],
-                        buttons: [{
-                            text: 'Save',
-                            onClick: (e) => {
-                                let result = this._sandbox.sendMessage(this.HIDE_POPUP);
-                                selected.setText(result.find((e) => e.name === 'state-name').value);
-                                this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
-                            }
-                        },
-                        {
-                            text: 'Cancel',
-                            onClick: (e) => {
-                                this._sandbox.sendMessage(this.HIDE_POPUP)
-                                selected.setText(oldText);
-                                this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
-                            }
-                        }]
-                    });
+                    this.beginEditState(selected);
                 }
                 break;
         }

@@ -35,7 +35,7 @@ export class DomManager {
 
     init() {
         if (!this.isInit) {
-            this._sandbox.registerListener(this.APP_INIT_EVENT, this.onAppInit.bind(this));
+            this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
             this.isInit = true;
             this.start();
         }
@@ -43,7 +43,7 @@ export class DomManager {
 
     start() {
         if (!this.isRunning) {
-            this._sandbox.registerListener(this.KEY_DOWN_EVENT, this._onKeyPressed.bind(this));
+            this._sandbox.registerListener(this.KEY_DOWN_EVENT, { callback: this._onKeyPressed, thisArg: this });
             this._sandbox.registerMessageReceiver(this.APPEND_DOM_ELEMENT, this.appendDomElement.bind(this));
             this._sandbox.registerMessageReceiver(this.GET_ELEMENTS_BY_TAG, this.getElementsByTag);
             this._sandbox.registerMessageReceiver(this.GET_APP_SIZE, this.getAppSize.bind(this));
@@ -54,7 +54,7 @@ export class DomManager {
     }
 
     onAppInit() {
-        //this._sandbox.unregisterListener('app-init', ???)
+        this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit)
     }
 
     appendDomElement(config) {
@@ -103,6 +103,10 @@ export class DomManager {
     }
 
     showPopup(data) {
+        if (this._popup.container.style['display'] !== 'none') {
+            this.hidePopup();
+        }
+
         this._popup.container.style['display'] = 'flex';
 
         data = data || {};
@@ -129,6 +133,8 @@ export class DomManager {
                 ipt.addEventListener('input', input.onChange)
                 this._popup.input.appendChild(ipt);
             });
+            let firstInput = this._popup.input.getElementsByTagName('input')[0];
+            if(firstInput) firstInput.focus();
         }
 
         if (data.buttons) {
@@ -137,16 +143,22 @@ export class DomManager {
                 btn.innerText = button.text;
                 btn.style['padding'] = '3px';
                 btn.style['display'] = 'inline-block';
+                btn.style['margin'] = '3px';
                 btn.addEventListener('click', button.onClick);
                 this._popup.buttons.appendChild(btn);
             });
         }
+
+        this._popup.onEnter = data.onEnter;
+        this._popup.onEscape = data.onEscape;
     }
 
     hidePopup() {
         let data = null;
+        this._popup.onEnter = null;
+        this._popup.onEscape = null;
         this._popup.text.innerText = '';
-        
+
         let input = Array.prototype.slice.call(this._popup.input.getElementsByTagName('input'));
         if (input) {
             data = [];
@@ -167,7 +179,8 @@ export class DomManager {
     stop() {
         if (this.isRunning) {
             this.isRunning = false;
-            window.removeEventListener('resize', this._windowResizedBind)
+            window.removeEventListener('resize', this._windowResizedBind);
+            this._sandbox.unregisterListener(this.KEY_DOWN_EVENT, this._onKeyPressed);
             this._sandbox.unregisterMessageReceiver(this.APPEND_DOM_ELEMENT);
             this._sandbox.unregisterMessageReceiver(this.GET_ELEMENTS_BY_TAG);
             this._sandbox.unregisterMessageReceiver(this.GET_APP_SIZE);
@@ -228,8 +241,11 @@ export class DomManager {
     }
 
     _onKeyPressed(e) {
-        if (e.key === 'Escape') {
-            this.hidePopup();
+        if (e.key === 'Escape' && this._popup.onEscape) {
+            this._popup.onEscape();
+        }
+        else if (e.key === 'Enter' && this._popup.onEscape) {
+            this._popup.onEnter();
         }
     }
 }

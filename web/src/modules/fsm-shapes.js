@@ -420,7 +420,7 @@ export class State extends Circle {
         this.isEntry = config.entry === undefined ? false : config.entry;
         this._textBox = new TextBox({
             position: this._position,
-            text: "Paweł",
+            text: config.text || '',
             offsetX: 0.5,
             offsetY: 0.5
         });
@@ -505,7 +505,7 @@ export class Transition extends Shape {
 
         this._textBox = new TextBox({
             position: this._position,
-            text: "Aneta",
+            text: config.text || '',
             offsetX: 0,
             offsetY: 0
         });

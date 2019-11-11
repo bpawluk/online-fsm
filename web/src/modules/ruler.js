@@ -22,7 +22,7 @@ export class Ruler {
 
     init() {
         if (!this.isInit) {
-            this._sandbox.registerListener(this.APP_INIT_EVENT, this.onAppInit.bind(this));
+            this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
             this.isInit = true;
             this.start();
         }
@@ -30,13 +30,13 @@ export class Ruler {
 
     start() {
         if (!this.isRunning) {
-            this._sandbox.registerListener(this.ITEM_MOVED_EVENT, this.onItemMoved.bind(this));
+            this._sandbox.registerListener(this.ITEM_MOVED_EVENT, { callback: this.onItemMoved, thisArg: this });
             this.isRunning = true;
         }
     }
 
     onAppInit() {
-        //this._sandbox.unregisterListener('app-init', ???);
+        this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
         if (this._isVisible) {
             this._sandbox.sendMessage(this.ADD_ITEM, this);
         }
@@ -96,7 +96,7 @@ export class Ruler {
 
     stop() {
         if (this.isRunning) {
-            // this._sandbox.unregisterListener(this.DOUBLE_CLICK_EVENT, this._handleDoubleClick.bind(this));
+            this._sandbox.unregisterListener(this.ITEM_MOVED_EVENT, this.onItemMoved);
             this.isRunning = false;
         }
     }

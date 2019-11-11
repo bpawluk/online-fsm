@@ -36,7 +36,7 @@ export class Canvas {
 
     init() {
         if (!this.isInit) {
-            this._sandbox.registerListener(this.APP_INIT_EVENT, this.onAppInit.bind(this));
+            this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
             this.isInit = true;
             this.start();
         }
@@ -52,14 +52,14 @@ export class Canvas {
     }
 
     onAppInit() {
-        //this._sandbox.unregisterListener('app-init', ???);
+        this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
         let width = this._size.width;
         let height = this._size.height;
         if (this._size.width === 'auto' || this._size.height === 'auto') {
             let appSize = this._sandbox.sendMessage(this.GET_APP_SIZE);
             width = this._size.width === 'auto' ? Math.max(appSize.width, this._minSize.width) : this._size.width;
             height = this._size.height === 'auto' ? Math.max(appSize.height, this._minSize.height) : this._size.height;
-            this._sandbox.registerListener(this.APP_RESIZED_EVENT, this._onAppResized.bind(this));
+            this._sandbox.registerListener(this.APP_RESIZED_EVENT, { callback: this._onAppResized, thisArg: this });
         }
         this._canvas = this._sandbox.sendMessage(this.APPEND_DOM_ELEMENT, { type: 'canvas', width: width, height: height });
         this._context = this._canvas.getContext('2d', { alpha: false });
@@ -110,14 +110,17 @@ export class Canvas {
     }
 
     cleanUp() {
+        this._sandbox.unregisterListener(this.APP_RESIZED_EVENT, this._onAppResized);
         this._sandbox.deleteEvent(this.CANVAS_CLEARED_EVENT);
         this._sandbox.deleteEvent(this.CANVAS_DRAWN_EVENT);
     }
 
-    _onAppResized(size){
-        this.resize({
-            width: this._size.width === 'auto' ? Math.max(size.width, this._minSize.width) : this._size.width,
-            height: this._size.height === 'auto' ? Math.max(size.height, this._minSize.height) : this._size.height
-        });
+    _onAppResized(size) {
+        if (this.isRunning) {
+            this.resize({
+                width: this._size.width === 'auto' ? Math.max(size.width, this._minSize.width) : this._size.width,
+                height: this._size.height === 'auto' ? Math.max(size.height, this._minSize.height) : this._size.height
+            });
+        }
     }
 }

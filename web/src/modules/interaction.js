@@ -35,7 +35,7 @@ export class Interaction {
 
     init() {
         if (!this.isInit) {
-            this._sandbox.registerListener(this.APP_INIT_EVENT, this.onAppInit.bind(this));
+            this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
             this.isInit = true;
             this.start();
         }
@@ -51,7 +51,7 @@ export class Interaction {
     }
 
     onAppInit() {
-        //this._sandbox.unregisterListener('app-init', ???)
+        this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit)
         let buttons = this._sandbox.sendMessage(this.GET_ELEMENTS_BY_TAG, 'button')
         if (buttons) {
             buttons.forEach(button => {

@@ -65,7 +65,7 @@ export class Workspace {
 
     init() {
         if (!this.isInit) {
-            this._sandbox.registerListener(this.APP_INIT_EVENT, this.onAppInit.bind(this));
+            this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
             this.isInit = true;
             this.start();
         }
@@ -73,12 +73,12 @@ export class Workspace {
 
     start() {
         if (!this.isRunning) {
-            this._sandbox.registerListener(this.POINTER_DOWN_EVENT, this._handlePointerDown.bind(this));
-            this._sandbox.registerListener(this.POINTER_MOVE_EVENT, this._handlePointerMove.bind(this));
-            this._sandbox.registerListener(this.POINTER_UP_EVENT, this._handlePointerUp.bind(this));
-            this._sandbox.registerListener(this.CANVAS_RESIZED_EVENT, this._onCanvasResized.bind(this));
-            this._sandbox.registerListener(this.KEY_DOWN_EVENT, this._handleKeyDown.bind(this));
-            this._sandbox.registerListener(this.BUTTON_CLICKED_EVENT, this._handleButtonClicked.bind(this));
+            this._sandbox.registerListener(this.POINTER_DOWN_EVENT, { callback: this._handlePointerDown, thisArg: this });
+            this._sandbox.registerListener(this.POINTER_MOVE_EVENT, { callback: this._handlePointerMove, thisArg: this });
+            this._sandbox.registerListener(this.POINTER_UP_EVENT, { callback: this._handlePointerUp, thisArg: this });
+            this._sandbox.registerListener(this.CANVAS_RESIZED_EVENT, { callback: this._onCanvasResized, thisArg: this });
+            this._sandbox.registerListener(this.KEY_DOWN_EVENT, { callback: this._handleKeyDown, thisArg: this });
+            this._sandbox.registerListener(this.BUTTON_CLICKED_EVENT, { callback: this._handleButtonClicked, thisArg: this });
             this._sandbox.registerMessageReceiver(this.ADD_ITEM, this.addItem.bind(this));
             this._sandbox.registerMessageReceiver(this.REMOVE_ITEM, this.removeItem.bind(this));
             this._sandbox.registerMessageReceiver(this.MOVE_ITEM, this.moveItem.bind(this));
@@ -94,7 +94,7 @@ export class Workspace {
     }
 
     onAppInit() {
-        //this._sandbox.unregisterListener('app-init', ???);
+        this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
     }
 
     addItem(item) {
@@ -234,9 +234,12 @@ export class Workspace {
             this._sandbox.unregisterMessageReceiver(this.GET_SELECTED_ITEM);
             this._sandbox.unregisterMessageReceiver(this.GET_ITEMS);
             this._sandbox.unregisterMessageReceiver(this.REFRESH_WORKSPACE);
-            // this._sandbox.unregisterListener(this.POINTER_DOWN_EVENT, this._handlePointerDown.bind(this));
-            // this._sandbox.unregisterListener(this.POINTER_MOVE_EVENT, this._handlePointerMove.bind(this));
-            // this._sandbox.unregisterListener(this.POINTER_UP_EVENT, this._handlePointerUp.bind(this));
+            this._sandbox.unregisterListener(this.POINTER_DOWN_EVENT, this._handlePointerDown);
+            this._sandbox.unregisterListener(this.POINTER_MOVE_EVENT, this._handlePointerMove);
+            this._sandbox.unregisterListener(this.POINTER_UP_EVENT, this._handlePointerUp);
+            this._sandbox.unregisterListener(this.CANVAS_RESIZED_EVENT, this._onCanvasResized);
+            this._sandbox.unregisterListener(this.KEY_DOWN_EVENT, this._handleKeyDown);
+            this._sandbox.unregisterListener(this.BUTTON_CLICKED_EVENT, this._handleButtonClicked);
             this.isRunning = false;
         }
     }
