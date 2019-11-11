@@ -1,5 +1,4 @@
 var assert = require('assert');
-var rewire = require('rewire');
 require = require('esm')(module);
 var utils = require('../core-utils.js');
 
