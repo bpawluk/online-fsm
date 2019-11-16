@@ -10,6 +10,8 @@ export class DomManager {
         this.GET_APP_SIZE = 'get-app-size';
         this.SHOW_POPUP = 'popup-show';
         this.HIDE_POPUP = 'popup-hide';
+        this.DISABLE_CONTROL = 'disable-control';
+        this.ENABLE_CONTROL = 'enable-control';
         this.APP_RESIZED_EVENT = 'app-resized';
 
         // Depends on:
@@ -49,6 +51,8 @@ export class DomManager {
             this._sandbox.registerMessageReceiver(this.GET_APP_SIZE, this.getAppSize.bind(this));
             this._sandbox.registerMessageReceiver(this.SHOW_POPUP, this.showPopup.bind(this));
             this._sandbox.registerMessageReceiver(this.HIDE_POPUP, this.hidePopup.bind(this));
+            this._sandbox.registerMessageReceiver(this.DISABLE_CONTROL, this.disableControl.bind(this));
+            this._sandbox.registerMessageReceiver(this.ENABLE_CONTROL, this.enableControl.bind(this));
             window.addEventListener('resize', this._windowResizedBind)
         }
     }
@@ -134,7 +138,7 @@ export class DomManager {
                 this._popup.input.appendChild(ipt);
             });
             let firstInput = this._popup.input.getElementsByTagName('input')[0];
-            if(firstInput) firstInput.focus();
+            if (firstInput) firstInput.focus();
         }
 
         if (data.buttons) {
@@ -171,6 +175,20 @@ export class DomManager {
         return data;
     }
 
+    disableControl(id) {
+        let control = document.getElementById(id);
+        if (control && 'disabled' in control) {
+            control.disabled = true;
+        }
+    }
+
+    enableControl(id) {
+        let control = document.getElementById(id);
+        if (control && 'disabled' in control) {
+            control.disabled = false;
+        }
+    }
+
     removeChildren(element) {
         let children = Array.prototype.slice.call(element.childNodes);
         children.forEach(child => child.parentNode.removeChild(child));
@@ -184,6 +202,10 @@ export class DomManager {
             this._sandbox.unregisterMessageReceiver(this.APPEND_DOM_ELEMENT);
             this._sandbox.unregisterMessageReceiver(this.GET_ELEMENTS_BY_TAG);
             this._sandbox.unregisterMessageReceiver(this.GET_APP_SIZE);
+            this._sandbox.unregisterMessageReceiver(this.SHOW_POPUP);
+            this._sandbox.unregisterMessageReceiver(this.HIDE_POPUP);
+            this._sandbox.unregisterMessageReceiver(this.DISABLE_CONTROL);
+            this._sandbox.unregisterMessageReceiver(this.ENABLE_CONTROL);
         }
     }
 

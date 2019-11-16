@@ -17,11 +17,14 @@ export class FSMDesigner {
         this.REFRESH_WORKSPACE = 'workspace-refresh';
         this.SHOW_POPUP = 'popup-show';
         this.HIDE_POPUP = 'popup-hide';
+        this.DISABLE_CONTROL = 'disable-control';
+        this.ENABLE_CONTROL = 'enable-control';
         this.APP_INIT_EVENT = 'app-init';
         this.ITEM_MOVED_EVENT = 'workspace-item-moved';
         this.ITEM_PRESSED_EVENT = 'workspace-item-pressed';
         this.ITEM_DRAG_ENDED_EVENT = 'workspace-drag-ended';
         this.ITEM_DELETED_EVENT = 'workspace-item-deleted';
+        this.ITEM_SELECTION_CHANGED_EVENT = 'workspace-item-selection-changed';
         this.DOUBLE_CLICK_EVENT = 'double-click';
         this.KEY_DOWN_EVENT = 'key-down'
         this.BUTTON_CLICKED_EVENT = 'button-clicked';
@@ -49,6 +52,7 @@ export class FSMDesigner {
             this._sandbox.registerListener(this.ITEM_PRESSED_EVENT, { callback: this._onItemPressed, thisArg: this });
             this._sandbox.registerListener(this.ITEM_DRAG_ENDED_EVENT, { callback: this._onDragEnded, thisArg: this });
             this._sandbox.registerListener(this.ITEM_DELETED_EVENT, { callback: this._onItemDeleted, thisArg: this });
+            this._sandbox.registerListener(this.ITEM_SELECTION_CHANGED_EVENT, { callback: this._onItemSelectionChanged, thisArg: this });
             this._sandbox.registerListener(this.DOUBLE_CLICK_EVENT, { callback: this._onPointerDoubleClicked, thisArg: this });
             this._sandbox.registerListener(this.KEY_DOWN_EVENT, { callback: this._onKeyDown, thisArg: this });
             this._sandbox.registerListener(this.BUTTON_CLICKED_EVENT, { callback: this._onButtonClicked, thisArg: this });
@@ -57,6 +61,7 @@ export class FSMDesigner {
 
     onAppInit() {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
+        this._sandbox.sendMessage(this.SELECT_ITEM, { item: null });
     }
 
     addState(point) {
@@ -129,6 +134,7 @@ export class FSMDesigner {
             this._sandbox.unregisterListener(this.ITEM_PRESSED_EVENT, this._onItemPressed);
             this._sandbox.unregisterListener(this.ITEM_DRAG_ENDED_EVENT, this._onDragEnded);
             this._sandbox.unregisterListener(this.ITEM_DELETED_EVENT, this._onItemDeleted);
+            this._sandbox.unregisterListener(this.ITEM_SELECTION_CHANGED_EVENT, this._onItemSelectionChanged);
             this._sandbox.unregisterListener(this.DOUBLE_CLICK_EVENT, this._onPointerDoubleClicked);
             this._sandbox.unregisterListener(this.KEY_DOWN_EVENT, this._onKeyDown);
             this._sandbox.unregisterListener(this.BUTTON_CLICKED_EVENT, this._onButtonClicked);
@@ -199,6 +205,24 @@ export class FSMDesigner {
         }
     }
 
+    _onItemSelectionChanged(e) {
+        if (e.newItem && (e.newItem instanceof State || e.newItem instanceof Transition)) {
+            if (e.newItem instanceof State) {
+                this._sandbox.sendMessage(this.ENABLE_CONTROL, 'connect');
+                this._sandbox.sendMessage(this.ENABLE_CONTROL, 'accept');
+                this._sandbox.sendMessage(this.ENABLE_CONTROL, 'initial');
+            }
+            this._sandbox.sendMessage(this.ENABLE_CONTROL, 'edit');
+            this._sandbox.sendMessage(this.ENABLE_CONTROL, 'delete');
+        } else {
+            this._sandbox.sendMessage(this.DISABLE_CONTROL, 'connect');
+            this._sandbox.sendMessage(this.DISABLE_CONTROL, 'accept');
+            this._sandbox.sendMessage(this.DISABLE_CONTROL, 'initial');
+            this._sandbox.sendMessage(this.DISABLE_CONTROL, 'edit');
+            this._sandbox.sendMessage(this.DISABLE_CONTROL, 'delete');
+        }
+    }
+
     _onPointerDoubleClicked(e) {
         let point = { x: e.x, y: e.y };
         let doubleClickedItem = this._sandbox.sendMessage(this.GET_ITEM_AT, {
@@ -231,17 +255,17 @@ export class FSMDesigner {
                 this.addState();
                 break;
             case 'connect':
-                if (selected) {
+                if (selected && selected instanceof State) {
                     this.beginConnecting(selected);
                 }
                 break;
             case 'accept':
-                if (selected) {
+                if (selected && selected instanceof State) {
                     this.makeAccepting(selected);
                 }
                 break;
             case 'initial':
-                if (selected) {
+                if (selected && selected instanceof State) {
                     this.changeEntryPoint({ item: selected });
                 }
                 break;
