@@ -6,6 +6,7 @@ import { Interaction } from './modules/interaction.js';
 import { Workspace } from './modules/workspace.js';
 import { Ruler } from './modules/ruler.js';
 import { FSMDesigner } from './modules/fsm-designer.js';
+import { FSMSerializer } from './modules/fsm-serializer.js';
 
 (function (domEntrypoint) {
     const core = new Core();
@@ -15,5 +16,6 @@ import { FSMDesigner } from './modules/fsm-designer.js';
     core.addModule(Workspace, 'workspace');
     core.addModule(Ruler, 'ruler', { distance: 15, reach: 3, visibility: true });
     core.addModule(FSMDesigner, 'fsm-designer');
+    core.addModule(FSMSerializer, 'fsm-serializer');
     core.init();
 })('workspace');

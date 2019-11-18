@@ -19,6 +19,8 @@ export class FSMDesigner {
         this.HIDE_POPUP = 'popup-hide';
         this.DISABLE_CONTROL = 'disable-control';
         this.ENABLE_CONTROL = 'enable-control';
+        this.SERIALIZE_FSM = 'fsm-serialize';
+        this.DESERIALIZE_FSM = 'fsm-deserialize';
         this.APP_INIT_EVENT = 'app-init';
         this.ITEM_MOVED_EVENT = 'workspace-item-moved';
         this.ITEM_PRESSED_EVENT = 'workspace-item-pressed';
@@ -62,6 +64,22 @@ export class FSMDesigner {
     onAppInit() {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
         this._sandbox.sendMessage(this.SELECT_ITEM, { item: null });
+        let dataString = localStorage.getItem('fsm-data');
+        if (dataString) {
+            let data = this._sandbox.sendMessage(this.DESERIALIZE_FSM, dataString)
+            data.states.forEach(state => {
+                let text = state.getText().trim();
+                if (text && /^S[0-9]+$/.test(text)) {
+                    let number = parseInt(text.slice(1, text.length));
+                    console.log(number);
+                    this._lastNum = number > this._lastNum ? number + 1 : this._lastNum;
+                }
+                this._sandbox.sendMessage(this.ADD_ITEM, state)
+            });
+            data.transitions.forEach(transition => {
+                this._sandbox.sendMessage(this.ADD_ITEM, transition)
+            });
+        }
     }
 
     addState(point) {
@@ -73,6 +91,8 @@ export class FSMDesigner {
         this._sandbox.sendMessage(this.ADD_ITEM, state);
         this.changeEntryPoint({ item: state, abortIfExists: true })
         this._sandbox.sendMessage(this.SELECT_ITEM, { item: state, point: point });
+        console.log('state added');
+        this._saveChanges();
     }
 
     beginEditState(state) {
@@ -83,6 +103,8 @@ export class FSMDesigner {
             state.setText(result.find((e) => e.name === 'state-name').value);
             this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
             this._sandbox.registerListener(this.KEY_DOWN_EVENT, { callback: this._onKeyDown, thisArg: this });
+            console.log('state edited');
+            this._saveChanges();
         };
         let cancel = () => {
             this._sandbox.sendMessage(this.HIDE_POPUP)
@@ -113,6 +135,8 @@ export class FSMDesigner {
     makeAccepting(state) {
         state.accept(!state.isAccepting);
         this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+        console.log('state accepted');
+        this._saveChanges();
     }
 
     changeEntryPoint(data) {
@@ -121,9 +145,13 @@ export class FSMDesigner {
             current.setAsEntry(false);
             data.item.setAsEntry(true);
             this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+            console.log('state entry set');
+            this._saveChanges();
         } else if (!current) {
             data.item.setAsEntry(true);
             this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+            console.log('state entry set');
+            this._saveChanges();
         }
     }
 
@@ -186,12 +214,15 @@ export class FSMDesigner {
                 this._sandbox.sendMessage(this.REMOVE_ITEM, e.item);
             }
         }
+        //TO DO
+        // console.log('drag ended');
+        // this._saveChanges();
     }
 
     _onItemDeleted(e) {
         if (e.item instanceof State) {
             let itemsToDelete = this._sandbox.sendMessage(this.GET_ITEMS, (item) => {
-                return item instanceof Transition && (item._firstItem === e.item || item._secondItem === e.item)
+                return item instanceof Transition && (item.firstItem === e.item || item.secondItem === e.item)
             });
             itemsToDelete.forEach(item => {
                 this._sandbox.sendMessage(this.REMOVE_ITEM, item);
@@ -203,6 +234,8 @@ export class FSMDesigner {
                 }
             }
         }
+        console.log('item deleted');
+        this._saveChanges();
     }
 
     _onItemSelectionChanged(e) {
@@ -211,6 +244,10 @@ export class FSMDesigner {
                 this._sandbox.sendMessage(this.ENABLE_CONTROL, 'connect');
                 this._sandbox.sendMessage(this.ENABLE_CONTROL, 'accept');
                 this._sandbox.sendMessage(this.ENABLE_CONTROL, 'initial');
+            } else {
+                this._sandbox.sendMessage(this.DISABLE_CONTROL, 'connect');
+                this._sandbox.sendMessage(this.DISABLE_CONTROL, 'accept');
+                this._sandbox.sendMessage(this.DISABLE_CONTROL, 'initial');
             }
             this._sandbox.sendMessage(this.ENABLE_CONTROL, 'edit');
             this._sandbox.sendMessage(this.ENABLE_CONTROL, 'delete');
@@ -275,5 +312,13 @@ export class FSMDesigner {
                 }
                 break;
         }
+    }
+
+    _saveChanges() {
+        let states = this._sandbox.sendMessage(this.GET_ITEMS, (item) => item instanceof State);
+        let transitions = this._sandbox.sendMessage(this.GET_ITEMS, (item) => item instanceof Transition);
+        let json = this._sandbox.sendMessage(this.SERIALIZE_FSM, { states: states, transitions: transitions });
+        console.log('SAVE');
+        localStorage.setItem('fsm-data', json);
     }
 }

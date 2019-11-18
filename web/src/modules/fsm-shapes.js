@@ -20,23 +20,25 @@ class Shape {
     contains(point) { return false }
 
     draw(context) {
-        context.save();
-        switch (this._visualState) {
-            case 'default':
-                context.strokeStyle = '#000000';
-                break;
-            case 'hovered':
-                context.strokeStyle = '#3BA7FF';
-                break;
-            case 'selected':
-                context.strokeStyle = '#336699';
-                break;
-            default:
-                throw new Error('There is no ' + this._visualState + ' visual state defined.');
+        if (this._position.x !== null && this._position.y !== null) {
+            context.save();
+            switch (this._visualState) {
+                case 'default':
+                    context.strokeStyle = '#000000';
+                    break;
+                case 'hovered':
+                    context.strokeStyle = '#3BA7FF';
+                    break;
+                case 'selected':
+                    context.strokeStyle = '#336699';
+                    break;
+                default:
+                    throw new Error('There is no ' + this._visualState + ' visual state defined.');
+            }
+            context.fillStyle = this.fill ? context.strokeStyle : '#FFFFFF'
+            this._decoratedDraw(context);
+            context.restore();
         }
-        context.fillStyle = this.fill ? context.strokeStyle : '#FFFFFF'
-        this._decoratedDraw(context);
-        context.restore();
     }
 
     getBounds() {
@@ -465,8 +467,8 @@ export class State extends Circle {
             context.arc(this._position.x - 2 * this._radius, this._position.y, 0.3 * this._radius, 0, 2 * Math.PI);
             context.fill();
             if (!this._entryArrow) {
-                this._entryArrow = new StraightArrow({start: { x: this._position.x - 2 * this._radius, y: this._position.y }, position: { x: this._position.x - this._radius, y: this._position.y } });
-            } 
+                this._entryArrow = new StraightArrow({ start: { x: this._position.x - 2 * this._radius, y: this._position.y }, position: { x: this._position.x - this._radius, y: this._position.y } });
+            }
             else {
                 this._entryArrow.move({ x: this._position.x - this._radius, y: this._position.y });
                 this._entryArrow.setStart({ x: this._position.x - 2 * this._radius, y: this._position.y });
@@ -493,15 +495,15 @@ export class Transition extends Shape {
         }
 
         this.isSet = !!config.second;
-        this._firstItem = config.first;
-        this._secondItem = config.second || config.first;
+        this.firstItem = config.first;
+        this.secondItem = config.second || config.first;
         this._sagitta = config.sagitta === undefined ? 0 : config.sagitta;
         this._isReversed = !!config.reverse;
 
-        this._colinearTolerance = config.tolerance === undefined ? 5 : config.tolerance;
         this._selfLinkDistance = config.selfLinkSize === undefined ? 30 : config.selfLinkSize;
+        this._selfLinkDirection = config.selfLinkDirection || { x: 0, y: -1 };
         this._selfLinkAngle = 0.75;
-        this._selfLinkDirection = { x: 0, y: -1 };
+        this._colinearTolerance = 5;
 
         this._textBox = new TextBox({
             position: this._position,
@@ -524,7 +526,7 @@ export class Transition extends Shape {
     }
 
     isSelfLink() {
-        return this._firstItem === this._secondItem;
+        return this.firstItem === this.secondItem;
     }
 
     contains(point) {
@@ -535,17 +537,17 @@ export class Transition extends Shape {
     move(point) {
         super.move(point);
         if (this.isSelfLink()) {
-            if (!MathUtils.arePointsEqual(this._firstItem.getPosition(), this._position)) {
-                this._selfLinkDirection = MathUtils.getUnitVector(this._firstItem.getPosition(), this._position);
+            if (!MathUtils.arePointsEqual(this.firstItem.getPosition(), this._position)) {
+                this._selfLinkDirection = MathUtils.getUnitVector(this.firstItem.getPosition(), this._position);
             }
         }
         else if (this.isSet) {
-            if (MathUtils.arePointsColinear(this._firstItem.getPosition(), this._secondItem.getPosition(), this._position, this._colinearTolerance)) {
+            if (MathUtils.arePointsColinear(this.firstItem.getPosition(), this.secondItem.getPosition(), this._position, this._colinearTolerance)) {
                 this._sagitta = 0;
             }
             else {
-                let from = this._firstItem.getPosition();
-                let to = this._secondItem.getPosition();
+                let from = this.firstItem.getPosition();
+                let to = this.secondItem.getPosition();
                 let lineMidPoint = {
                     x: (from.x + to.x) / 2,
                     y: (from.y + to.y) / 2
@@ -570,11 +572,11 @@ export class Transition extends Shape {
     }
 
     setEndTemporarily(item) {
-        this._secondItem = item;
+        this.secondItem = item;
     }
 
     setEnd(item) {
-        this._secondItem = item;
+        this.secondItem = item;
         this.isSet = true;
     }
 
@@ -610,11 +612,11 @@ export class Transition extends Shape {
 
     _createSelfTransition() {
         let data = {};
-        let from = this._firstItem.getPosition();
+        let from = this.firstItem.getPosition();
         let angle = Math.atan2(this._selfLinkDirection.y, this._selfLinkDirection.x);
-        let middlePoint = MathUtils.getPointOnCircleGivenAngle(from, this._firstItem.getRadius(), angle);
-        let firstPoint = MathUtils.getPointOnCircleGivenAngle(from, this._firstItem.getRadius(), angle - this._selfLinkAngle / 2);
-        let secondPoint = MathUtils.getPointOnCircleGivenAngle(from, this._firstItem.getRadius(), angle + this._selfLinkAngle / 2);
+        let middlePoint = MathUtils.getPointOnCircleGivenAngle(from, this.firstItem.getRadius(), angle);
+        let firstPoint = MathUtils.getPointOnCircleGivenAngle(from, this.firstItem.getRadius(), angle - this._selfLinkAngle / 2);
+        let secondPoint = MathUtils.getPointOnCircleGivenAngle(from, this.firstItem.getRadius(), angle + this._selfLinkAngle / 2);
         data.center = MathUtils.centerOfCircleFrom3Points(firstPoint, secondPoint, MathUtils.translateVector(MathUtils.vecByScalMul(this._selfLinkDirection, this._selfLinkDistance), middlePoint));
         data.radius = MathUtils.distance(data.center, firstPoint);
         data.startAngle = Math.atan2(firstPoint.y - data.center.y, firstPoint.x - data.center.x)
@@ -624,12 +626,12 @@ export class Transition extends Shape {
     }
 
     _createStraightTransition() {
-        let from = this._firstItem.getPosition();
-        let to = this._secondItem ? this._secondItem.getPosition() : this.getPosition();
+        let from = this.firstItem.getPosition();
+        let to = this.secondItem ? this.secondItem.getPosition() : this.getPosition();
         if (!MathUtils.arePointsEqual(from, to)) {
-            let newfrom = MathUtils.translateVector(MathUtils.vecByScalMul(MathUtils.getUnitVector(from, to), this._firstItem.getRadius()), this._firstItem.getPosition());
-            if (this._secondItem) {
-                let newTo = MathUtils.translateVector(MathUtils.vecByScalMul(MathUtils.getUnitVector(to, from), this._secondItem.getRadius()), this._secondItem.getPosition());
+            let newfrom = MathUtils.translateVector(MathUtils.vecByScalMul(MathUtils.getUnitVector(from, to), this.firstItem.getRadius()), this.firstItem.getPosition());
+            if (this.secondItem) {
+                let newTo = MathUtils.translateVector(MathUtils.vecByScalMul(MathUtils.getUnitVector(to, from), this.secondItem.getRadius()), this.secondItem.getPosition());
                 to = newTo;
             }
             from = newfrom;
@@ -639,8 +641,8 @@ export class Transition extends Shape {
 
     _createCircularTransition() {
         let data = {};
-        let from = this._firstItem.getPosition();
-        let to = this._secondItem.getPosition();
+        let from = this.firstItem.getPosition();
+        let to = this.secondItem.getPosition();
         let midPoint = {
             x: (from.x + to.x) / 2,
             y: (from.y + to.y) / 2
@@ -662,8 +664,8 @@ export class Transition extends Shape {
             data.reverse = this._isReversed;
 
             let scale = this._isReversed ? 1 : -1;
-            data.startAngle = Math.atan2(from.y - data.center.y, from.x - data.center.x) - 2 * scale * Math.asin(this._firstItem.getRadius() / (2 * data.radius));
-            data.endAngle = Math.atan2(to.y - data.center.y, to.x - data.center.x) + 2 * scale * Math.asin(this._secondItem.getRadius() / (2 * data.radius));
+            data.startAngle = Math.atan2(from.y - data.center.y, from.x - data.center.x) - 2 * scale * Math.asin(this.firstItem.getRadius() / (2 * data.radius));
+            data.endAngle = Math.atan2(to.y - data.center.y, to.x - data.center.x) + 2 * scale * Math.asin(this.secondItem.getRadius() / (2 * data.radius));
         }
 
         this._applyArrowChanges(CircularArrow, data);
@@ -710,14 +712,16 @@ export class Transition extends Shape {
     }
 
     _repositionText(type, data) {
-        let position = null;
+        let position = { x: null, y: null };
         let offsetX = null;
         let offsetY = null;
-        if (type === StraightArrow) {
-            position = MathUtils.translateVector(MathUtils.vecByScalMul(MathUtils.getVector(data.from, data.to), 0.5), data.from);
-        }
-        else if (type === CircularArrow) {
-            position = MathUtils.getPointOnCircleGivenAngle(data.center, data.radius, MathUtils.getMidAngleOfArc(data.startAngle, data.endAngle, data.reverse));
+        if (this.isSelfLink() || !MathUtils.arePointsEqual(this.firstItem.getPosition(), this.secondItem ? this.secondItem.getPosition() : this._position)) {
+            if (type === StraightArrow) {
+                position = MathUtils.translateVector(MathUtils.vecByScalMul(MathUtils.getVector(data.from, data.to), 0.5), data.from);
+            }
+            else if (type === CircularArrow) {
+                position = MathUtils.getPointOnCircleGivenAngle(data.center, data.radius, MathUtils.getMidAngleOfArc(data.startAngle, data.endAngle, data.reverse));
+            }
         }
         this._textBox.move(position);
         this._textBox.configure({
@@ -727,8 +731,8 @@ export class Transition extends Shape {
     }
 
     _updateArrowIfNeeded() {
-        let from = this._firstItem.getPosition();
-        let to = this._secondItem ? this._secondItem.getPosition() : this.getPosition();
+        let from = this.firstItem.getPosition();
+        let to = this.secondItem ? this.secondItem.getPosition() : this.getPosition();
         let position = this.getPosition();
         if (this.isSelfLink()) {
             if (this._pointsWereMoved(from, null, position)) {
