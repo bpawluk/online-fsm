@@ -1,6 +1,7 @@
 'use strict'
 
 import { State, Transition } from './fsm-shapes.js'
+import { MathUtils } from '../common-utils.js';
 
 export class FSMDesigner {
     constructor(sandbox) {
@@ -65,21 +66,7 @@ export class FSMDesigner {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
         this._sandbox.sendMessage(this.SELECT_ITEM, { item: null });
         let dataString = localStorage.getItem('fsm-data');
-        if (dataString) {
-            let data = this._sandbox.sendMessage(this.DESERIALIZE_FSM, dataString)
-            data.states.forEach(state => {
-                let text = state.getText().trim();
-                if (text && /^S[0-9]+$/.test(text)) {
-                    let number = parseInt(text.slice(1, text.length));
-                    console.log(number);
-                    this._lastNum = number > this._lastNum ? number + 1 : this._lastNum;
-                }
-                this._sandbox.sendMessage(this.ADD_ITEM, state)
-            });
-            data.transitions.forEach(transition => {
-                this._sandbox.sendMessage(this.ADD_ITEM, transition)
-            });
-        }
+        if(dataString) this._loadData(dataString);
     }
 
     addState(point) {
@@ -130,6 +117,23 @@ export class FSMDesigner {
         });
         this._sandbox.sendMessage(this.ADD_ITEM, transition);
         this._sandbox.sendMessage(this.BEGIN_DRAG, { item: transition, point: point });
+    }
+
+    endConnecting(item, point) {
+        let itemAt = this._sandbox.sendMessage(this.GET_ITEM_AT, {
+            point: point,
+            predicate: function (item) {
+                return item instanceof State;
+            }
+        });
+        if (itemAt) {
+            item.setEnd(itemAt);
+            console.log('trans added')
+            this._saveChanges();
+        }
+        else {
+            this._sandbox.sendMessage(this.REMOVE_ITEM, item);
+        }
     }
 
     makeAccepting(state) {
@@ -201,22 +205,12 @@ export class FSMDesigner {
 
     _onDragEnded(e) {
         if (e.item instanceof Transition && !e.item.isSet) {
-            let itemAt = this._sandbox.sendMessage(this.GET_ITEM_AT, {
-                point: e.point,
-                predicate: function (item) {
-                    return item instanceof State;
-                }
-            });
-            if (itemAt) {
-                e.item.setEnd(itemAt);
-            }
-            else {
-                this._sandbox.sendMessage(this.REMOVE_ITEM, e.item);
-            }
+            this.endConnecting(e.item, e.point)
         }
-        //TO DO
-        // console.log('drag ended');
-        // this._saveChanges();
+        else if(!MathUtils.arePointsEqual(e.from, e.to)) {
+            console.log('item moved')
+            this._saveChanges();
+        }
     }
 
     _onItemDeleted(e) {
@@ -311,6 +305,10 @@ export class FSMDesigner {
                     this.beginEditState(selected);
                 }
                 break;
+            case 'new':
+                this._clearCache();
+                this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+                break;
         }
     }
 
@@ -320,5 +318,32 @@ export class FSMDesigner {
         let json = this._sandbox.sendMessage(this.SERIALIZE_FSM, { states: states, transitions: transitions });
         console.log('SAVE');
         localStorage.setItem('fsm-data', json);
+    }
+
+    _loadData(dataString) {
+        if (dataString) {
+            let data = this._sandbox.sendMessage(this.DESERIALIZE_FSM, dataString)
+            data.states.forEach(state => {
+                let text = state.getText().trim();
+                if (text && /^S[0-9]+$/.test(text)) {
+                    let number = parseInt(text.slice(1, text.length));
+                    this._lastNum = number > this._lastNum ? number + 1 : this._lastNum;
+                }
+                this._sandbox.sendMessage(this.ADD_ITEM, state)
+            });
+            data.transitions.forEach(transition => {
+                this._sandbox.sendMessage(this.ADD_ITEM, transition)
+            });
+        }
+    }
+
+    _clearCache(){
+        localStorage.removeItem('fsm-data');
+        let items = this._sandbox.sendMessage(this.GET_ITEMS, (item) => {
+            return item instanceof Transition || item instanceof State;
+        });
+        items.forEach(item => {
+            this._sandbox.sendMessage(this.REMOVE_ITEM, item);
+        });
     }
 }

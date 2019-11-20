@@ -46,6 +46,7 @@ export class Workspace {
         this._sandbox = sandbox;
 
         this._draggedItem = null;
+        this._dragStart = null
         this._hoveredItem = null;
         this._selectedItem = null;
         this._items = [];
@@ -59,7 +60,7 @@ export class Workspace {
         this._sandbox.createEvent(this.ITEM_SELECTION_CHANGED_EVENT);
         this._sandbox.declareInterface(this.DRAWABLE_INTERFACE, ['draw'], []);
         this._sandbox.declareInterface(this.HOVERABLE_INTERFACE, ['contains', 'pointerOver', 'pointerOut'], ['isHoverable']);
-        this._sandbox.declareInterface(this.MOVABLE_INTERFACE, ['move'], ['isMovable']);
+        this._sandbox.declareInterface(this.MOVABLE_INTERFACE, ['move', 'getPosition'], ['isMovable']);
         this._sandbox.declareInterface(this.SELECTABLE_INTERFACE, ['contains', 'select', 'unselect'], ['isSelectable']);
     }
 
@@ -148,6 +149,7 @@ export class Workspace {
         if (item && item.isMovable) {
             if (this._items.includes(item) && item.isMovable) {
                 this._draggedItem = item;
+                this._dragStart = item.getPosition();
                 this._sandbox.raiseEvent(this.ITEM_DRAG_STARTED_EVENT, { item: item, point: point });
                 this._sandbox.sendMessage(this.PREVENT_SCROLLING, false);
             }
@@ -159,7 +161,11 @@ export class Workspace {
         if (this._draggedItem) {
             let draggedItem = this._draggedItem;
             this._draggedItem = null;
-            this._sandbox.raiseEvent(this.ITEM_DRAG_ENDED_EVENT, { item: draggedItem, point: point });
+            this._sandbox.raiseEvent(this.ITEM_DRAG_ENDED_EVENT, {
+                item: draggedItem, point: point,
+                from: this._dragStart, to: draggedItem.getPosition()
+            });
+            this._dragStart = null;
             this._sandbox.sendMessage(this.PREVENT_SCROLLING, true);
         }
     }
