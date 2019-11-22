@@ -52,8 +52,8 @@ export class Event {
         if (!listener || !listener.callback || typeof listener.callback !== 'function') {
             throw new Error('Event listener has to be of type function');
         }
-        
-        if(!this._listeners.find(item => item.callback === listener.callback)) {
+
+        if (!this._listeners.find(item => item.callback === listener.callback)) {
             this._listeners.push(listener);
         }
     }
@@ -88,6 +88,8 @@ export class EventsManager {
         this._events = new Map();
         this._events.set(this.EVENT_REGISTERED_EVENT, new Event());
         this._events.set(this.EVENT_UNREGISTERED_EVENT, new Event());
+        this._queue = [];
+        this._executing = false;
     }
 
     create(eventName) {
@@ -114,7 +116,20 @@ export class EventsManager {
         let event = this._events.get(eventName);
 
         if (event) {
-            event.invoke(args);
+            if (this._executing) {
+                this._queue.push({eventName: eventName, args: args});
+            }
+            else {
+                this._executing = true;
+                event.invoke(args);
+                this._executing = false;
+
+                if (this._queue.length > 0) {
+                    let nextEvent = this._queue.shift();
+                    this.raise(nextEvent.eventName, nextEvent.args);
+                }
+            }
+
             success = true;
         }
         return success;

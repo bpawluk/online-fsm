@@ -5,17 +5,11 @@ export class Workspace {
         // Provides:
         this.ADD_ITEM = 'workspace-add-item';
         this.REMOVE_ITEM = 'workspace-remove-item';
-        this.MOVE_ITEM = 'workspace-move-item';
-        this.BEGIN_DRAG = 'workspace-begin-drag';
-        this.END_DRAG = 'workspace-end-drag';
         this.SELECT_ITEM = 'workspace-select-item';
         this.GET_SELECTED_ITEM = 'workspace-get-selection';
         this.GET_ITEM_AT = 'workspace-get-item';
         this.GET_ITEMS = 'workspace-get-items';
         this.REFRESH_WORKSPACE = 'workspace-refresh';
-        this.ITEM_DRAG_STARTED_EVENT = 'workspace-drag-started';
-        this.ITEM_MOVED_EVENT = 'workspace-item-moved';
-        this.ITEM_DRAG_ENDED_EVENT = 'workspace-drag-ended';
         this.ITEM_PRESSED_EVENT = 'workspace-item-pressed';
         this.ITEM_DELETED_EVENT = 'workspace-item-deleted';
         this.ITEM_POINTER_OVER_CHANGED_EVENT = 'workspace-item-pointer-over-changed';
@@ -26,7 +20,7 @@ export class Workspace {
         this.CLEAR_CANVAS = 'canvas-clear';
         this.DRAW_ON_CANVAS = 'canvas-draw';
         this.REDRAW_CANVAS = 'canvas-redraw';
-        this.PREVENT_SCROLLING = 'prevent-scrolling';
+        this.IS_DRAGGING = 'workspace-is-dragging'
         this.APP_INIT_EVENT = 'app-init';
         this.CANVAS_RESIZED_EVENT = 'canvas-resized';
         this.POINTER_DOWN_EVENT = 'pointer-down';
@@ -45,15 +39,10 @@ export class Workspace {
         this.isRunning = false;
         this._sandbox = sandbox;
 
-        this._draggedItem = null;
-        this._dragStart = null
         this._hoveredItem = null;
         this._selectedItem = null;
         this._items = [];
 
-        this._sandbox.createEvent(this.ITEM_DRAG_STARTED_EVENT);
-        this._sandbox.createEvent(this.ITEM_MOVED_EVENT);
-        this._sandbox.createEvent(this.ITEM_DRAG_ENDED_EVENT);
         this._sandbox.createEvent(this.ITEM_PRESSED_EVENT);
         this._sandbox.createEvent(this.ITEM_DELETED_EVENT);
         this._sandbox.createEvent(this.ITEM_POINTER_OVER_CHANGED_EVENT);
@@ -82,10 +71,7 @@ export class Workspace {
             this._sandbox.registerListener(this.BUTTON_CLICKED_EVENT, { callback: this._handleButtonClicked, thisArg: this });
             this._sandbox.registerMessageReceiver(this.ADD_ITEM, this.addItem.bind(this));
             this._sandbox.registerMessageReceiver(this.REMOVE_ITEM, this.removeItem.bind(this));
-            this._sandbox.registerMessageReceiver(this.MOVE_ITEM, this.moveItem.bind(this));
             this._sandbox.registerMessageReceiver(this.SELECT_ITEM, this.selectItem.bind(this));
-            this._sandbox.registerMessageReceiver(this.BEGIN_DRAG, this.beginDrag.bind(this));
-            this._sandbox.registerMessageReceiver(this.END_DRAG, this.endDrag.bind(this));
             this._sandbox.registerMessageReceiver(this.GET_ITEM_AT, this.getItemAt.bind(this));
             this._sandbox.registerMessageReceiver(this.GET_SELECTED_ITEM, () => this._selectedItem);
             this._sandbox.registerMessageReceiver(this.GET_ITEMS, this.getItems.bind(this));
@@ -142,44 +128,6 @@ export class Workspace {
         }
     }
 
-    beginDrag(data) {
-        let item = data.item;
-        let point = data.point;
-        this.endDrag(point);
-        if (item && item.isMovable) {
-            if (this._items.includes(item) && item.isMovable) {
-                this._draggedItem = item;
-                this._dragStart = item.getPosition();
-                this._sandbox.raiseEvent(this.ITEM_DRAG_STARTED_EVENT, { item: item, point: point });
-                this._sandbox.sendMessage(this.PREVENT_SCROLLING, false);
-            }
-        }
-
-    }
-
-    endDrag(point) {
-        if (this._draggedItem) {
-            let draggedItem = this._draggedItem;
-            this._draggedItem = null;
-            this._sandbox.raiseEvent(this.ITEM_DRAG_ENDED_EVENT, {
-                item: draggedItem, point: point,
-                from: this._dragStart, to: draggedItem.getPosition()
-            });
-            this._dragStart = null;
-            this._sandbox.sendMessage(this.PREVENT_SCROLLING, true);
-        }
-    }
-
-    moveItem(data) {
-        let item = data.item;
-        let point = data.point;
-        if (item && this._items.includes(item) && item.isMovable) {
-            item.move(point);
-            this._sandbox.sendMessage(this.REDRAW_CANVAS, this._items);
-            this._sandbox.raiseEvent(this.ITEM_MOVED_EVENT, { item: item, point: point, source: data.sender });
-        }
-    }
-
     hoverItem(item, point) {
         let oldItem = this._hoveredItem;
         let newItem = this._items.includes(item) && item.isHoverable ? item : null;
@@ -233,9 +181,6 @@ export class Workspace {
             this._sandbox.unregisterMessageReceiver(this.ADD_ITEM);
             this._sandbox.unregisterMessageReceiver(this.REMOVE_ITEM);
             this._sandbox.unregisterMessageReceiver(this.SELECT_ITEM);
-            this._sandbox.unregisterMessageReceiver(this.MOVE_ITEM);
-            this._sandbox.unregisterMessageReceiver(this.BEGIN_DRAG);
-            this._sandbox.unregisterMessageReceiver(this.END_DRAG);
             this._sandbox.unregisterMessageReceiver(this.GET_ITEM_AT);
             this._sandbox.unregisterMessageReceiver(this.GET_SELECTED_ITEM);
             this._sandbox.unregisterMessageReceiver(this.GET_ITEMS);
@@ -251,9 +196,6 @@ export class Workspace {
     }
 
     cleanUp() {
-        this._sandbox.deleteEvent(this.ITEM_DRAG_STARTED_EVENT);
-        this._sandbox.deleteEvent(this.ITEM_MOVED_EVENT);
-        this._sandbox.deleteEvent(this.ITEM_DRAG_ENDED_EVENT);
         this._sandbox.deleteEvent(this.ITEM_PRESSED_EVENT);
         this._sandbox.deleteEvent(this.ITEM_POINTER_OVER_CHANGED_EVENT);
         this._sandbox.deleteEvent(this.ITEM_SELECTION_CHANGED_EVENT);
@@ -262,16 +204,12 @@ export class Workspace {
     _handlePointerDown(e) {
         let point = { x: e.x, y: e.y };
         let elementClicked = this.getItemAt({ point: point });
-        this.beginDrag({ item: elementClicked, point: point });
         this.selectItem({ item: elementClicked, point: point });
     }
 
     _handlePointerMove(e) {
         let point = { x: e.x, y: e.y };
-        if (this._draggedItem) {
-            this.moveItem({ item: this._draggedItem, point: point });
-        }
-        else {
+        if (!this._sandbox.sendMessage(this.IS_DRAGGING)) {
             let newHovered = this.getItemAt({ point: point });
             if (this._hoveredItem || newHovered) {
                 this.hoverItem(newHovered, point);
@@ -281,7 +219,6 @@ export class Workspace {
 
     _handlePointerUp(e) {
         let point = { x: e.x, y: e.y };
-        this.endDrag(point);
         let elementAtPoint = this.getItemAt({ point: point });
         if (this._selectedItem && elementAtPoint === this._selectedItem) {
             this._sandbox.raiseEvent(this.ITEM_PRESSED_EVENT, { point: point, item: elementAtPoint, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey });
