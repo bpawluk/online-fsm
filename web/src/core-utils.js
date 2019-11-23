@@ -228,6 +228,14 @@ export class ModulesManager {
         }
     }
 
+    startAll() {
+        for (let module of this._modules.values()) {
+            if (!module.isRunning) {
+                module.start();
+            }
+        }
+    }
+
     start(moduleName) {
         let success = false;
         let module = this._modules.get(moduleName)

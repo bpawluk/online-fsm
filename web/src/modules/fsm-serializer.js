@@ -21,7 +21,6 @@ export class FSMSerializer {
         if (!this.isInit) {
             this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
             this.isInit = true;
-            this.start();
         }
     }
 
@@ -29,6 +28,7 @@ export class FSMSerializer {
         if (!this.isRunning) {
             this._sandbox.registerMessageReceiver(this.SERIALIZE_FSM, this.serialize.bind(this));
             this._sandbox.registerMessageReceiver(this.DESERIALIZE_FSM, this.deserialize.bind(this));
+            this.isRunning = true;
         }
     }
 

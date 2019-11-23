@@ -22,6 +22,10 @@ export class FSMDesigner {
         this.ENABLE_CONTROL = 'enable-control';
         this.SERIALIZE_FSM = 'fsm-serialize';
         this.DESERIALIZE_FSM = 'fsm-deserialize';
+        this.ADD_KEY_LISTENER = 'add-key-listener';
+        this.REMOVE_KEY_LISTENER = 'remove-key-listener';
+        this.ADD_BUTTON_LISTENER = 'add-button-listener';
+        this.REMOVE_BUTTON_LISTENER = 'remove-button-listener';
         this.APP_INIT_EVENT = 'app-init';
         this.ITEM_MOVED_EVENT = 'workspace-item-moved';
         this.ITEM_PRESSED_EVENT = 'workspace-item-pressed';
@@ -29,8 +33,6 @@ export class FSMDesigner {
         this.ITEM_DELETED_EVENT = 'workspace-item-deleted';
         this.ITEM_SELECTION_CHANGED_EVENT = 'workspace-item-selection-changed';
         this.DOUBLE_CLICK_EVENT = 'double-click';
-        this.KEY_DOWN_EVENT = 'key-down'
-        this.BUTTON_CLICKED_EVENT = 'button-clicked';
 
         // Requires interfaces:
 
@@ -39,13 +41,47 @@ export class FSMDesigner {
         this._sandbox = sandbox;
 
         this._lastNum = 0;
+        this._onEnter = () => {
+            let selected = this._sandbox.sendMessage(this.GET_SELECTED_ITEM);
+            if (selected) {
+                this.beginEditState(selected);
+            }
+        };
+        this._onAdd = () => this.addState();
+        this._onConnect = () => {
+            let selected = this._sandbox.sendMessage(this.GET_SELECTED_ITEM);
+            if (selected && selected instanceof State) {
+                this.beginConnecting(selected);
+            }
+        }
+        this._onAccept = () => {
+            let selected = this._sandbox.sendMessage(this.GET_SELECTED_ITEM);
+            if (selected && selected instanceof State) {
+                this.makeAccepting(selected);
+            }
+        }
+        this._onInitial = () => {
+            let selected = this._sandbox.sendMessage(this.GET_SELECTED_ITEM);
+            if (selected && selected instanceof State) {
+                this.changeEntryPoint({ item: selected });
+            }
+        }
+        this._onEdit = () => {
+            let selected = this._sandbox.sendMessage(this.GET_SELECTED_ITEM);
+            if (selected) {
+                this.beginEditState(selected);
+            }
+        }
+        this._onNew = () => {
+            this._clearCache();
+            this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+        }
     }
 
     init() {
         if (!this.isInit) {
             this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
             this.isInit = true;
-            this.start();
         }
     }
 
@@ -57,16 +93,22 @@ export class FSMDesigner {
             this._sandbox.registerListener(this.ITEM_DELETED_EVENT, { callback: this._onItemDeleted, thisArg: this });
             this._sandbox.registerListener(this.ITEM_SELECTION_CHANGED_EVENT, { callback: this._onItemSelectionChanged, thisArg: this });
             this._sandbox.registerListener(this.DOUBLE_CLICK_EVENT, { callback: this._onPointerDoubleClicked, thisArg: this });
-            this._sandbox.registerListener(this.KEY_DOWN_EVENT, { callback: this._onKeyDown, thisArg: this });
-            this._sandbox.registerListener(this.BUTTON_CLICKED_EVENT, { callback: this._onButtonClicked, thisArg: this });
+            this.isRunning = true;
         }
     }
 
     onAppInit() {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
+        this._sandbox.sendMessage(this.ADD_KEY_LISTENER, { key: 'Enter', listener: this._onEnter });
+        this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'accept', listener: this._onAccept });
+        this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'add', listener: this._onAdd });
+        this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'connect', listener: this._onConnect });
+        this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'initial', listener: this._onInitial });
+        this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'edit', listener: this._onEdit });
+        this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'new', listener: this._onNew });
         this._sandbox.sendMessage(this.SELECT_ITEM, { item: null });
         let dataString = localStorage.getItem('fsm-data');
-        if(dataString) this._loadData(dataString);
+        if (dataString) this._loadData(dataString);
     }
 
     addState(point) {
@@ -83,13 +125,13 @@ export class FSMDesigner {
     }
 
     beginEditState(state) {
-        this._sandbox.unregisterListener(this.KEY_DOWN_EVENT, this._onKeyDown);
+        this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Enter', listener: this._onEnter });
         let oldText = state.getText();
         let save = () => {
             let result = this._sandbox.sendMessage(this.HIDE_POPUP);
             state.setText(result.find((e) => e.name === 'state-name').value);
             this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
-            this._sandbox.registerListener(this.KEY_DOWN_EVENT, { callback: this._onKeyDown, thisArg: this });
+            this._sandbox.sendMessage(this.ADD_KEY_LISTENER, { key: 'Enter', listener: this._onEnter });
             console.log('state edited');
             this._saveChanges();
         };
@@ -97,7 +139,7 @@ export class FSMDesigner {
             this._sandbox.sendMessage(this.HIDE_POPUP)
             state.setText(oldText);
             this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
-            this._sandbox.registerListener(this.KEY_DOWN_EVENT, { callback: this._onKeyDown, thisArg: this });
+            this._sandbox.sendMessage(this.ADD_KEY_LISTENER, { key: 'Enter', listener: this._onEnter });
         };
         this._sandbox.sendMessage(this.SHOW_POPUP, {
             message: 'Please enter new name for the state',
@@ -168,12 +210,18 @@ export class FSMDesigner {
             this._sandbox.unregisterListener(this.ITEM_DELETED_EVENT, this._onItemDeleted);
             this._sandbox.unregisterListener(this.ITEM_SELECTION_CHANGED_EVENT, this._onItemSelectionChanged);
             this._sandbox.unregisterListener(this.DOUBLE_CLICK_EVENT, this._onPointerDoubleClicked);
-            this._sandbox.unregisterListener(this.KEY_DOWN_EVENT, this._onKeyDown);
-            this._sandbox.unregisterListener(this.BUTTON_CLICKED_EVENT, this._onButtonClicked);
         }
     }
 
-    cleanUp() { }
+    cleanUp() { 
+        this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Enter', listener: this._onEnter });
+        this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'accept', listener: this._onAccept });
+        this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'add', listener: this._onAdd });
+        this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'connect', listener: this._onConnect });
+        this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'initial', listener: this._onInitial });
+        this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'edit', listener: this._onEdit });
+        this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'new', listener: this._onNew });
+    }
 
     _onItemPressed(e) {
         if (e.item instanceof State) {
@@ -207,7 +255,7 @@ export class FSMDesigner {
         if (e.item instanceof Transition && !e.item.isSet) {
             this.endConnecting(e.item, e.point)
         }
-        else if(!MathUtils.arePointsEqual(e.from, e.to)) {
+        else if (!MathUtils.arePointsEqual(e.from, e.to)) {
             console.log('item moved')
             this._saveChanges();
         }
@@ -270,48 +318,6 @@ export class FSMDesigner {
         }
     }
 
-    _onKeyDown(e) {
-        if (e.key === 'Enter') {
-            let selected = this._sandbox.sendMessage(this.GET_SELECTED_ITEM);
-            if (selected) {
-                this.beginEditState(selected);
-            }
-        }
-    }
-
-    _onButtonClicked(button) {
-        let selected = this._sandbox.sendMessage(this.GET_SELECTED_ITEM);
-        switch (button.id) {
-            case 'add':
-                this.addState();
-                break;
-            case 'connect':
-                if (selected && selected instanceof State) {
-                    this.beginConnecting(selected);
-                }
-                break;
-            case 'accept':
-                if (selected && selected instanceof State) {
-                    this.makeAccepting(selected);
-                }
-                break;
-            case 'initial':
-                if (selected && selected instanceof State) {
-                    this.changeEntryPoint({ item: selected });
-                }
-                break;
-            case 'edit':
-                if (selected) {
-                    this.beginEditState(selected);
-                }
-                break;
-            case 'new':
-                this._clearCache();
-                this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
-                break;
-        }
-    }
-
     _saveChanges() {
         let states = this._sandbox.sendMessage(this.GET_ITEMS, (item) => item instanceof State);
         let transitions = this._sandbox.sendMessage(this.GET_ITEMS, (item) => item instanceof Transition);
@@ -337,7 +343,7 @@ export class FSMDesigner {
         }
     }
 
-    _clearCache(){
+    _clearCache() {
         localStorage.removeItem('fsm-data');
         let items = this._sandbox.sendMessage(this.GET_ITEMS, (item) => {
             return item instanceof Transition || item instanceof State;

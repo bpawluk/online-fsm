@@ -26,6 +26,7 @@ export class Core {
     init() {
         if (!this._isInit) {
             this._modulesManager.initAll();
+            this._modulesManager.startAll();
             this._isInit = true;
             this.raiseEvent(this.APP_INIT_EVENT);
         }

@@ -25,17 +25,15 @@ export class ItemDragger {
 
         this._draggedItem = null;
         this._dragStart = null
-
-        this._sandbox.createEvent(this.ITEM_DRAG_STARTED_EVENT);
-        this._sandbox.createEvent(this.ITEM_MOVED_EVENT);
-        this._sandbox.createEvent(this.ITEM_DRAG_ENDED_EVENT);
     }
 
     init() {
         if (!this.isInit) {
             this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
+            this._sandbox.createEvent(this.ITEM_DRAG_STARTED_EVENT);
+            this._sandbox.createEvent(this.ITEM_MOVED_EVENT);
+            this._sandbox.createEvent(this.ITEM_DRAG_ENDED_EVENT);
             this.isInit = true;
-            this.start();
         }
     }
 
@@ -47,7 +45,7 @@ export class ItemDragger {
             this._sandbox.registerMessageReceiver(this.MOVE_ITEM, this.moveItem.bind(this));
             this._sandbox.registerMessageReceiver(this.BEGIN_DRAG, this.beginDrag.bind(this));
             this._sandbox.registerMessageReceiver(this.END_DRAG, this.endDrag.bind(this));
-            this._sandbox.registerMessageReceiver(this.IS_DRAGGING, this.isDragging.bind(this));
+            this._sandbox.registerMessageReceiver(this.IS_DRAGGING, () => !!this._draggedItem);
             this.isRunning = true;
         }
     }
@@ -90,10 +88,6 @@ export class ItemDragger {
             this._sandbox.sendMessage(this.REFRESH_WORKSPACE, false);
             this._sandbox.raiseEvent(this.ITEM_MOVED_EVENT, { item: item, point: point, source: data.sender });
         }
-    }
-
-    isDragging() {
-        return !!this._draggedItem;
     }
 
     stop() {

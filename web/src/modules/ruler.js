@@ -24,7 +24,6 @@ export class Ruler {
         if (!this.isInit) {
             this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
             this.isInit = true;
-            this.start();
         }
     }
 

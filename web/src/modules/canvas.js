@@ -14,7 +14,7 @@ export class Canvas {
         // Depends on:
         this.APPEND_DOM_ELEMENT = 'append-dom-element';
         this.GET_APP_SIZE = 'get-app-size';
-        this.MAKE_INTERACTIVE = 'make-interactive';
+        this.ADD_MOUSE_LISTENERS = 'add-mouse-listeners';
         this.APP_INIT_EVENT = 'app-init';
         this.APP_RESIZED_EVENT = 'app-resized';
 
@@ -28,17 +28,15 @@ export class Canvas {
         this._sandbox = sandbox;
         this._canvas;
         this._context;
-
-        this._sandbox.createEvent(this.CANVAS_CLEARED_EVENT);
-        this._sandbox.createEvent(this.CANVAS_DRAWN_EVENT);
-        this._sandbox.createEvent(this.CANVAS_RESIZED_EVENT);
     }
 
     init() {
         if (!this.isInit) {
             this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
+            this._sandbox.createEvent(this.CANVAS_CLEARED_EVENT);
+            this._sandbox.createEvent(this.CANVAS_DRAWN_EVENT);
+            this._sandbox.createEvent(this.CANVAS_RESIZED_EVENT);
             this.isInit = true;
-            this.start();
         }
     }
 
@@ -64,7 +62,7 @@ export class Canvas {
         this._canvas = this._sandbox.sendMessage(this.APPEND_DOM_ELEMENT, { type: 'canvas', width: width, height: height });
         this._context = this._canvas.getContext('2d', { alpha: false });
         if (this._isInteractive) {
-            this._sandbox.sendMessage(this.MAKE_INTERACTIVE, this._canvas);
+            this._sandbox.sendMessage(this.ADD_MOUSE_LISTENERS, this._canvas);
         }
         this.clear();
     }

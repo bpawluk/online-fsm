@@ -6,6 +6,7 @@ export class DomManager {
     constructor(sandbox, config) {
         // Provides:
         this.APPEND_DOM_ELEMENT = 'append-dom-element';
+        this.GET_ELEMENT_BY_ID = 'get-element-by-id';
         this.GET_ELEMENTS_BY_TAG = 'get-element-by-tag';
         this.GET_APP_SIZE = 'get-app-size';
         this.SHOW_POPUP = 'popup-show';
@@ -15,8 +16,9 @@ export class DomManager {
         this.APP_RESIZED_EVENT = 'app-resized';
 
         // Depends on:
+        this.ADD_KEY_LISTENER = 'add-key-listener';
+        this.REMOVE_KEY_LISTENER = 'remove-key-listener';
         this.APP_INIT_EVENT = 'app-init';
-        this.KEY_DOWN_EVENT = 'key-down'
 
         // Requires interfaces:
 
@@ -31,22 +33,22 @@ export class DomManager {
         this._sandbox = sandbox;
         this._outerDiv = document.getElementById(config.entrypoint);
         this._popup = this._createPopupContainer();
-
-        this._sandbox.createEvent(this.APP_RESIZED_EVENT);
+        this._onEnter = () => { if (this.isRunning && this._popup.onEnter) this._popup.onEnter() };
+        this._onEscape = () => { if (this.isRunning && this._popup.onEscape) this._popup.onEscape() };
     }
 
     init() {
         if (!this.isInit) {
             this._sandbox.registerListener(this.APP_INIT_EVENT, { callback: this.onAppInit, thisArg: this });
+            this._sandbox.createEvent(this.APP_RESIZED_EVENT);
             this.isInit = true;
-            this.start();
         }
     }
 
     start() {
         if (!this.isRunning) {
-            this._sandbox.registerListener(this.KEY_DOWN_EVENT, { callback: this._onKeyPressed, thisArg: this });
             this._sandbox.registerMessageReceiver(this.APPEND_DOM_ELEMENT, this.appendDomElement.bind(this));
+            this._sandbox.registerMessageReceiver(this.GET_ELEMENT_BY_ID, this.getElementById);
             this._sandbox.registerMessageReceiver(this.GET_ELEMENTS_BY_TAG, this.getElementsByTag);
             this._sandbox.registerMessageReceiver(this.GET_APP_SIZE, this.getAppSize.bind(this));
             this._sandbox.registerMessageReceiver(this.SHOW_POPUP, this.showPopup.bind(this));
@@ -54,11 +56,14 @@ export class DomManager {
             this._sandbox.registerMessageReceiver(this.DISABLE_CONTROL, this.disableControl.bind(this));
             this._sandbox.registerMessageReceiver(this.ENABLE_CONTROL, this.enableControl.bind(this));
             window.addEventListener('resize', this._windowResizedBind)
+            this.isRunning = true;
         }
     }
 
     onAppInit() {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit)
+        this._sandbox.sendMessage(this.ADD_KEY_LISTENER, { key: 'Enter', listener: this._onEnter });
+        this._sandbox.sendMessage(this.ADD_KEY_LISTENER, { key: 'Escape', listener: this._onEscape });
     }
 
     appendDomElement(config) {
@@ -92,6 +97,15 @@ export class DomManager {
 
         this._outerDiv.appendChild(elementToAppend);
         return elementToAppend;
+    }
+
+    getElementById(data) {
+        const element = document.getElementById(data.id);
+        if (!data.predicate || data.predicate(element)) {
+            return element;
+        } else {
+            return null;
+        }
     }
 
     getElementsByTag(tag) {
@@ -198,8 +212,8 @@ export class DomManager {
         if (this.isRunning) {
             this.isRunning = false;
             window.removeEventListener('resize', this._windowResizedBind);
-            this._sandbox.unregisterListener(this.KEY_DOWN_EVENT, this._onKeyPressed);
             this._sandbox.unregisterMessageReceiver(this.APPEND_DOM_ELEMENT);
+            this._sandbox.unregisterMessageReceiver(this.GET_ELEMENT_BY_ID);
             this._sandbox.unregisterMessageReceiver(this.GET_ELEMENTS_BY_TAG);
             this._sandbox.unregisterMessageReceiver(this.GET_APP_SIZE);
             this._sandbox.unregisterMessageReceiver(this.SHOW_POPUP);
@@ -209,7 +223,10 @@ export class DomManager {
         }
     }
 
-    cleanUp() { }
+    cleanUp() {
+        this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Enter', listener: this._onEnter });
+        this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Escape', listener: this._onEscape });
+    }
 
     _createPopupContainer() {
         let container = document.createElement('div');
@@ -260,14 +277,5 @@ export class DomManager {
 
     _onWindowResized(e) {
         this._sandbox.raiseEvent(this.APP_RESIZED_EVENT, this.getAppSize());
-    }
-
-    _onKeyPressed(e) {
-        if (e.key === 'Escape' && this._popup.onEscape) {
-            this._popup.onEscape();
-        }
-        else if (e.key === 'Enter' && this._popup.onEscape) {
-            this._popup.onEnter();
-        }
     }
 }
