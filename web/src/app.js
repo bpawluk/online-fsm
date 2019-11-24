@@ -9,6 +9,7 @@ import { FSMDesigner } from './modules/fsm-designer.js';
 import { FSMSerializer } from './modules/fsm-serializer.js';
 import { ItemDragger } from './modules/item-dragger.js';
 import { ItemSelector } from './modules/item-selector.js';
+import { PopupManager } from './modules/popup-manager.js';
 
 (function (domEntrypoint) {
     const core = new Core();
@@ -21,5 +22,6 @@ import { ItemSelector } from './modules/item-selector.js';
     core.addModule(Ruler, 'ruler', { distance: 15, reach: 3, visibility: true });
     core.addModule(FSMDesigner, 'fsm-designer');
     core.addModule(FSMSerializer, 'fsm-serializer');
+    core.addModule(PopupManager, 'popup-manager')
     core.init();
 })('workspace');

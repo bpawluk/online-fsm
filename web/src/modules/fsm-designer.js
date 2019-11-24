@@ -1,7 +1,8 @@
 'use strict'
 
-import { State, Transition } from './fsm-shapes.js'
 import { MathUtils } from '../common-utils.js';
+import { State } from '../shapes/state-shape.js';
+import { Transition } from '../shapes/transition-shape.js';
 
 export class FSMDesigner {
     constructor(sandbox) {
@@ -18,8 +19,7 @@ export class FSMDesigner {
         this.REFRESH_WORKSPACE = 'workspace-refresh';
         this.SHOW_POPUP = 'popup-show';
         this.HIDE_POPUP = 'popup-hide';
-        this.DISABLE_CONTROL = 'disable-control';
-        this.ENABLE_CONTROL = 'enable-control';
+        this.SET_CONTROL_DISABLED = 'disable-control';
         this.SERIALIZE_FSM = 'fsm-serialize';
         this.DESERIALIZE_FSM = 'fsm-deserialize';
         this.ADD_KEY_LISTENER = 'add-key-listener';
@@ -213,7 +213,7 @@ export class FSMDesigner {
         }
     }
 
-    cleanUp() { 
+    cleanUp() {
         this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Enter', listener: this._onEnter });
         this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'accept', listener: this._onAccept });
         this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'add', listener: this._onAdd });
@@ -283,22 +283,22 @@ export class FSMDesigner {
     _onItemSelectionChanged(e) {
         if (e.newItem && (e.newItem instanceof State || e.newItem instanceof Transition)) {
             if (e.newItem instanceof State) {
-                this._sandbox.sendMessage(this.ENABLE_CONTROL, 'connect');
-                this._sandbox.sendMessage(this.ENABLE_CONTROL, 'accept');
-                this._sandbox.sendMessage(this.ENABLE_CONTROL, 'initial');
+                this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'connect', disabled: false });
+                this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'accept', disabled: false });
+                this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'initial', disabled: false });
             } else {
-                this._sandbox.sendMessage(this.DISABLE_CONTROL, 'connect');
-                this._sandbox.sendMessage(this.DISABLE_CONTROL, 'accept');
-                this._sandbox.sendMessage(this.DISABLE_CONTROL, 'initial');
+                this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'connect', disabled: true });
+                this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'accept', disabled: true });
+                this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'initial', disabled: true });
             }
-            this._sandbox.sendMessage(this.ENABLE_CONTROL, 'edit');
-            this._sandbox.sendMessage(this.ENABLE_CONTROL, 'delete');
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'edit', disabled: false });
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'delete', disabled: false });
         } else {
-            this._sandbox.sendMessage(this.DISABLE_CONTROL, 'connect');
-            this._sandbox.sendMessage(this.DISABLE_CONTROL, 'accept');
-            this._sandbox.sendMessage(this.DISABLE_CONTROL, 'initial');
-            this._sandbox.sendMessage(this.DISABLE_CONTROL, 'edit');
-            this._sandbox.sendMessage(this.DISABLE_CONTROL, 'delete');
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'connect', disabled: true });
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'accept', disabled: true });
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'initial', disabled: true });
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'edit', disabled: true });
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'delete', disabled: true });
         }
     }
 

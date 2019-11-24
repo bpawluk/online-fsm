@@ -1,6 +1,7 @@
 'use strict'
 
-import { State, Transition } from './fsm-shapes.js'
+import { State } from '../shapes/state-shape.js';
+import { Transition } from '../shapes/transition-shape.js';
 
 export class FSMSerializer {
     constructor(sandbox, config) {

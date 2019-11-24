@@ -7,11 +7,17 @@ export class Workspace {
         this.GET_ITEMS = 'workspace-get-items';
         this.GET_ITEM_AT = 'workspace-get-item';
         this.REMOVE_ITEM = 'workspace-remove-item';
+        this.ADD_BUTTON_LISTENER = 'add-button-listener';
+        this.ADD_KEY_LISTENER = 'add-key-listener';
+        this.REMOVE_BUTTON_LISTENER = 'remove-button-listener';
+        this.REMOVE_KEY_LISTENER = 'remove-key-listener';
         this.REFRESH_WORKSPACE = 'workspace-refresh';
         this.ITEM_ADDED_EVENT = 'workspace-item-added';
         this.ITEM_DELETED_EVENT = 'workspace-item-deleted';
 
         // Depends on:
+        this.SELECT_ITEM = 'workspace-select-item';
+        this.GET_SELECTED_ITEM = 'workspace-get-selection';
         this.DRAW_ON_CANVAS = 'canvas-draw';
         this.REDRAW_CANVAS = 'canvas-redraw';
         this.APP_INIT_EVENT = 'app-init';
@@ -28,6 +34,7 @@ export class Workspace {
         this._sandbox = sandbox;
 
         this._items = [];
+        this._deleteSelectedBind = this._deleteSelected.bind(this);
     }
 
     init() {
@@ -57,6 +64,8 @@ export class Workspace {
 
     onAppInit() {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
+        this._sandbox.sendMessage(this.ADD_KEY_LISTENER, { key: 'Delete', listener: this._deleteSelectedBind });
+        this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'delete', listener: this._deleteSelectedBind });
     }
 
     addItem(item) {
@@ -80,7 +89,7 @@ export class Workspace {
             if (this._items[i] === item) {
                 this._items.splice(i, 1);
                 this._sandbox.sendMessage(this.REDRAW_CANVAS, this._items);
-                this._sandbox.raiseEvent(this.ITEM_DELETED_EVENT, item);
+                this._sandbox.raiseEvent(this.ITEM_DELETED_EVENT, { item: item });
                 return;
             }
         }
@@ -125,26 +134,19 @@ export class Workspace {
     cleanUp() {
         this._sandbox.deleteEvent(this.ITEM_ADDED_EVENT);
         this._sandbox.deleteEvent(this.ITEM_DELETED_EVENT);
+        this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Delete', listener: this._deleteSelectedBind });
+        this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'delete', listener: this._deleteSelectedBind });
     }
 
-    // _deleteSelected() {
-    //     let toDelete = this._selectedItem;
-    //     this.selectItem({ item: null });
-    //     this.removeItem(toDelete);
-    //     this._sandbox.raiseEvent(this.ITEM_DELETED_EVENT, { item: toDelete });
-    // }
-
-    // _handleKeyDown(e) {
-    //     if (e.key === 'Delete' && this._selectedItem) {
-    //         this._deleteSelected();
-    //     }
-    // }
-
-    // _handleButtonClicked(button) {
-    //     if (button.id === 'delete') {
-    //         this._deleteSelected();
-    //     }
-    // }
+    _deleteSelected() {
+        if (this.isRunning) {
+            let toDelete = this._sandbox.sendMessage(this.GET_SELECTED_ITEM);
+            if (toDelete) {
+                this._sandbox.sendMessage(this.SELECT_ITEM, { item: null });
+                this.removeItem(toDelete);
+            }
+        }
+    }
 
     _onCanvasResized(e) {
         this.refresh();
