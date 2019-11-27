@@ -10,8 +10,8 @@ export class FSMSerializer {
         this.DESERIALIZE_FSM = 'fsm-deserialize';
 
         // Depends on:
-
-        // Requires interfaces:
+        this.ADD_ITEM = 'workspace-add-item';
+        this.GET_ITEMS = 'workspace-get-items';
 
         this.isInit = false;
         this.isRunning = false;
@@ -37,42 +37,41 @@ export class FSMSerializer {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit)
     }
 
-    serialize(data) {
+    serialize() {
         let blob = {};
-        if (data && data.states instanceof Array && data.transitions instanceof Array) {
-            let ids = data.states.reduce((map, curr, i) => map.set(curr, i), new Map());
-            blob.states = data.states.map((state) => ({
-                id: ids.get(state),
-                pos: state.getPosition(),
-                txt: state.getText(),
-                acc: state.isAccepting,
-                ent: state.isEntry
-            }));
-            blob.transitions = data.transitions.map((transition) => {
-                let trans = {
-                    frm: ids.get(transition.firstItem),
-                    to: ids.get(transition.secondItem),
-                    con: transition.getText(),
-                };
-                if (transition.isSelfLink()) {
-                    let dir = transition._selfLinkDirection;
-                    trans.dir = { x: +dir.x.toFixed(2), y: +dir.y.toFixed(2) }
-                }
-                else if (transition._sagitta) {
-                    trans.sag = Math.round(transition._sagitta);
-                    trans.rev = transition._isReversed;
-                }
-                return trans;
-            });
-        }
+        let states = this._sandbox.sendMessage(this.GET_ITEMS, (item) => item instanceof State);
+        let transitions = this._sandbox.sendMessage(this.GET_ITEMS, (item) => item instanceof Transition);
+
+        let ids = states.reduce((map, curr, i) => map.set(curr, i), new Map());
+        blob.states = states.map((state) => ({
+            id: ids.get(state),
+            pos: state.getPosition(),
+            txt: state.getText(),
+            acc: state.isAccepting,
+            ent: state.isEntry
+        }));
+
+        blob.transitions = transitions.map((transition) => {
+            let trans = {
+                frm: ids.get(transition.firstItem),
+                to: ids.get(transition.secondItem),
+                con: transition.getText(),
+            };
+            if (transition.isSelfLink()) {
+                let dir = transition._selfLinkDirection;
+                trans.dir = { x: +dir.x.toFixed(2), y: +dir.y.toFixed(2) }
+            }
+            else if (transition._sagitta) {
+                trans.sag = Math.round(transition._sagitta);
+                trans.rev = transition._isReversed;
+            }
+            return trans;
+        });
+
         return JSON.stringify(blob);
     }
 
     deserialize(text) {
-        let data = {};
-        data.states = [];
-        data.transitions = [];
-
         let dataRead = null;
         try {
             dataRead = JSON.parse(text);
@@ -80,47 +79,55 @@ export class FSMSerializer {
             console.log('Error parsing JSON data')
         }
 
-        if (dataRead && dataRead.states instanceof Array && dataRead.transitions instanceof Array) {
+        if(dataRead) {
+            let states = [];
+            let transitions = [];
             let ids = new Map();
-
-            let lastNum = 0;
-            let entryDefined = false;
-            dataRead.states.forEach(state => {
-                if (state && state.id !== undefined) {
-                    let position = state.pos || { x: 50, y: 50 };
-                    let current = new State({
-                        text: state.txt === undefined ? 'S' + lastNum++ : state.txt,
-                        position: position,
-                        accept: state.acc,
-                        entry: entryDefined ? false : state.ent
-                    });
-                    ids.set(state.id, current);
-                    data.states.push(current);
-                    if (state.ent) entryDefined = true;
-                }
-            });
-
-            dataRead.transitions.forEach(trans => {
-                let from = ids.get(trans.frm);
-                let to = ids.get(trans.to);
-                if (trans && from !== undefined && to !== undefined) {
-                    let config = {
-                        first: from,
-                        second: to
-                    };
-                    if (from === to) {
-                        config.selfLinkDirection = trans.dir || { x: 0, y: -1 };
+    
+            if (dataRead.states instanceof Array) {
+                let lastNum = 0;
+                let entryDefined = false;
+                dataRead.states.forEach(state => {
+                    if (state && state.id !== undefined) {
+                        let position = state.pos || { x: 50, y: 50 };
+                        let current = new State({
+                            text: state.txt === undefined ? 'S' + lastNum++ : state.txt,
+                            position: position,
+                            accept: state.acc,
+                            entry: entryDefined ? false : state.ent
+                        });
+                        ids.set(state.id, current);
+                        states.push(current);
+                        if (state.ent) entryDefined = true;
                     }
-                    else if (trans.sag) {
-                        config.sagitta = trans.sag;
-                        config.reverse = trans.rev;
+                });
+            }
+    
+            if (dataRead.transitions instanceof Array) {
+                dataRead.transitions.forEach(trans => {
+                    let from = ids.get(trans.frm);
+                    let to = ids.get(trans.to);
+                    if (trans && from !== undefined && to !== undefined) {
+                        let config = {
+                            first: from,
+                            second: to,
+                            text: trans.con
+                        };
+                        if (from === to) {
+                            config.selfLinkDirection = trans.dir || { x: 0, y: -1 };
+                        }
+                        else if (trans.sag) {
+                            config.sagitta = trans.sag;
+                            config.reverse = trans.rev;
+                        }
+                        transitions.push(new Transition(config));
                     }
-                    data.transitions.push(new Transition(config));
-                }
-            });
+                });
+            }
+
+            states.forEach(state => this._sandbox.sendMessage(this.ADD_ITEM, state));
+            transitions.forEach(transition => this._sandbox.sendMessage(this.ADD_ITEM, transition));
         }
-
-        return data;
     }
 
     stop() {

@@ -239,13 +239,11 @@ export class Transition extends Shape {
         let position = { x: null, y: null };
         let offsetX = null;
         let offsetY = null;
-        if (this.isSelfLink() || !MathUtils.arePointsEqual(this.firstItem.getPosition(), this.secondItem ? this.secondItem.getPosition() : this._position)) {
-            if (type === StraightArrow) {
-                position = MathUtils.translateVector(MathUtils.vecByScalMul(MathUtils.getVector(data.from, data.to), 0.5), data.from);
-            }
-            else if (type === CircularArrow) {
-                position = MathUtils.getPointOnCircleGivenAngle(data.center, data.radius, MathUtils.getMidAngleOfArc(data.startAngle, data.endAngle, data.reverse));
-            }
+        if (type === StraightArrow && !MathUtils.arePointsEqual(data.from, data.to)) {
+            position = MathUtils.translateVector(MathUtils.vecByScalMul(MathUtils.getVector(data.from, data.to), 0.5), data.from);
+        }
+        else if (type === CircularArrow) {
+            position = MathUtils.getPointOnCircleGivenAngle(data.center, data.radius, MathUtils.getMidAngleOfArc(data.startAngle, data.endAngle, data.reverse));
         }
         this._textBox.move(position);
         this._textBox.configure({

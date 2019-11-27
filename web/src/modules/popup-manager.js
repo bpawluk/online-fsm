@@ -15,8 +15,6 @@ export class PopupManager {
         this.isRunning = false;
         this._sandbox = sandbox;
         this._popup = this._createPopupContainer();
-        this._onEnter = () => { if (this.isRunning && this._popup.onEnter) this._popup.onEnter() };
-        this._onEscape = () => { if (this.isRunning && this._popup.onEscape) this._popup.onEscape() };
     }
 
     init() {
@@ -36,8 +34,6 @@ export class PopupManager {
 
     onAppInit() {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit)
-        this._sandbox.sendMessage(this.ADD_KEY_LISTENER, { key: 'Enter', listener: this._onEnter });
-        this._sandbox.sendMessage(this.ADD_KEY_LISTENER, { key: 'Escape', listener: this._onEscape });
     }
 
     showPopup(data) {
@@ -87,19 +83,32 @@ export class PopupManager {
             });
         }
 
-        this._popup.onEnter = data.onEnter;
-        this._popup.onEscape = data.onEscape;
+        if (typeof data.onEnter === 'function') {
+            this._popup.onEnter = data.onEnter;
+            this._sandbox.sendMessage(this.ADD_KEY_LISTENER, { key: 'Enter', listener: this._popup.onEnter });
+        }
+
+        if (typeof data.onEscape === 'function') {
+            this._popup.onEscape = data.onEscape;
+            this._sandbox.sendMessage(this.ADD_KEY_LISTENER, { key: 'Escape', listener: this._popup.onEscape });
+        }
     }
 
     hidePopup() {
-        let data = null;
-        this._popup.onEnter = null;
-        this._popup.onEscape = null;
+        if (typeof this._popup.onEnter === 'function') {
+            this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Enter', listener: this._popup.onEnter });
+            this._popup.onEnter = null;
+        }
+
+        if (typeof this._popup.onEscape === 'function') {
+            this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Enter', listener: this._popup.onEscape });
+            this._popup.onEscape = null;        }
+
         this._popup.text.innerText = '';
 
+        let data = [];
         let input = Array.prototype.slice.call(this._popup.input.getElementsByTagName('input'));
         if (input) {
-            data = [];
             input.forEach((ipt) => data.push({ name: ipt.name, value: ipt.value }));
         }
 
@@ -117,10 +126,7 @@ export class PopupManager {
         }
     }
 
-    cleanUp() {
-        this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Enter', listener: this._onEnter });
-        this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Escape', listener: this._onEscape });
-    }
+    cleanUp() { }
 
     _removeChildren(element) {
         let children = Array.prototype.slice.call(element.childNodes);

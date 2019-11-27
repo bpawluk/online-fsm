@@ -46,6 +46,7 @@ export class ItemSelector {
 
     onAppInit() {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
+        this.selectItem({item: null});
     }
 
     hoverItem(item, point) {
