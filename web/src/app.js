@@ -12,6 +12,7 @@ import { ItemSelector } from './modules/item-selector.js';
 import { PopupManager } from './modules/popup-manager.js';
 import { FSMStateManager } from './modules/fsm-state-manager.js';
 import { FSMTransitionManager } from './modules/fsm-transition-manager.js';
+import { FSMLifecycleManager } from './modules/fsm-lifecycle-manager.js';
 
 (function (domEntrypoint) {
     const core = new Core();
@@ -22,6 +23,7 @@ import { FSMTransitionManager } from './modules/fsm-transition-manager.js';
     core.addModule(ItemSelector, 'item-selector');
     core.addModule(ItemDragger, 'item-dragger')
     core.addModule(Ruler, 'ruler', { distance: 15, reach: 3, visibility: true });
+    core.addModule(FSMLifecycleManager, 'fsm-lifecycle-manager');
     core.addModule(FSMCacheManager, 'fsm-cache-manager');
     core.addModule(FSMStateManager, 'fsm-state-manager');
     core.addModule(FSMTransitionManager, 'fsm-transition-manager');

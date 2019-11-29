@@ -1,18 +1,15 @@
 'use strict'
 
-import { State } from '../shapes/state-shape.js';
-import { Transition } from '../shapes/transition-shape.js';
-
 export class FSMCacheManager {
     constructor(sandbox) {
+        // Provides:
+        this.SAVE_CACHE = 'fsm-save-cache';
+        this.LOAD_CACHE = 'fsm-load-cache';
+        this.CLEAR_CACHE = 'fsm-clear-cache';
+
         // Depends on:
-        this.GET_ITEMS = 'workspace-get-items';
-        this.REMOVE_ITEM = 'workspace-remove-item';
-        this.REFRESH_WORKSPACE = 'workspace-refresh';
         this.SERIALIZE_FSM = 'fsm-serialize';
         this.DESERIALIZE_FSM = 'fsm-deserialize';
-        this.ADD_BUTTON_LISTENER = 'add-button-listener';
-        this.REMOVE_BUTTON_LISTENER = 'remove-button-listener';
         this.APP_INIT_EVENT = 'app-init';
         this.STATE_CREATED_EVENT = 'fsm-state-created';
         this.STATE_EDITED_EVENT = 'fsm-state-edited';
@@ -25,11 +22,9 @@ export class FSMCacheManager {
         this.isRunning = false;
         this._sandbox = sandbox;
 
-        this._onNew = () => {
-            localStorage.removeItem('fsm-data');
-            this._clearWorkspace();
-            this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
-        }
+        this._saveSpan = 5000;
+        this._lastSave = null;
+        this._isWaiting = false;
     }
 
     init() {
@@ -41,6 +36,9 @@ export class FSMCacheManager {
 
     start() {
         if (!this.isRunning) {
+            this._sandbox.registerMessageReceiver(this.SAVE_CACHE, this.saveCache.bind(this));
+            this._sandbox.registerMessageReceiver(this.LOAD_CACHE, this.loadCache.bind(this));
+            this._sandbox.registerMessageReceiver(this.CLEAR_CACHE, this.clearCache.bind(this));
             this._sandbox.registerListener(this.STATE_CREATED_EVENT, { callback: this._saveChanges, thisArg: this });
             this._sandbox.registerListener(this.STATE_EDITED_EVENT, { callback: this._saveChanges, thisArg: this });
             this._sandbox.registerListener(this.STATE_DELETED_EVENT, { callback: this._saveChanges, thisArg: this });
@@ -53,9 +51,23 @@ export class FSMCacheManager {
 
     onAppInit() {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
-        this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'new', listener: this._onNew });
+
+    }
+
+    saveCache() {
+        localStorage.setItem('fsm-data', this._sandbox.sendMessage(this.SERIALIZE_FSM));
+        console.log('SAVED | PREV ' + (Date.now() - this._lastSave) / 1000 + ' seconds ago');
+        this._lastSave = Date.now();
+
+    }
+
+    loadCache() {
         let dataString = localStorage.getItem('fsm-data');
         if (dataString) this._sandbox.sendMessage(this.DESERIALIZE_FSM, dataString);
+    }
+
+    clearCache() {
+        localStorage.removeItem('fsm-data');
     }
 
     stop() {
@@ -67,24 +79,26 @@ export class FSMCacheManager {
             this._sandbox.unregisterListener(this.TRANSITION_CREATED_EVENT, this._saveChanges);
             this._sandbox.unregisterListener(this.TRANSITION_EDITED_EVENT, this._saveChanges);
             this._sandbox.unregisterListener(this.TRANSITION_DELETED_EVENT, this._saveChanges);
+            this._sandbox.unregisterMessageReceiver(this.SAVE_CACHE);
+            this._sandbox.unregisterMessageReceiver(this.LOAD_CACHE);
+            this._sandbox.unregisterMessageReceiver(this.CLEAR_CACHE);
         }
     }
 
-    cleanUp() {
-        this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'new', listener: this._onNew });
-    }
+    cleanUp() { }
 
-    _saveChanges(){
-        localStorage.setItem('fsm-data', this._sandbox.sendMessage(this.SERIALIZE_FSM));
-        console.log('changes saved');
-    }
-
-    _clearWorkspace() {
-        let items = this._sandbox.sendMessage(this.GET_ITEMS, (item) => {
-            return item instanceof Transition || item instanceof State;
-        });
-        items.forEach(item => {
-            this._sandbox.sendMessage(this.REMOVE_ITEM, item);
-        });
+    _saveChanges() {
+        if (!this._isWaiting) {
+            const timeDiff = Date.now() - this._lastSave;
+            if (timeDiff > this._saveSpan) {
+                this.saveCache();
+            } else {
+                this._isWaiting = true;
+                setTimeout(() => {
+                    this.saveCache()
+                    this._isWaiting = false;
+                }, this._saveSpan - timeDiff);
+            }
+        }
     }
 }
