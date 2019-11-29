@@ -37,7 +37,7 @@ export class FSMStateManager {
         this.isRunning = false;
         this._sandbox = sandbox;
 
-        this._lastNum;
+        this._nextNum = 0;
         this._onAdd = () => { if (this.isRunning) this.addState() };
         this._onAccept = () => { if (this.isRunning) this._operateOnSelectedState((selected) => this.makeAccepting(selected)) };
         this._onInitial = () => { if (this.isRunning) this._operateOnSelectedState((selected) => this.changeEntryPoint({ item: selected })) };
@@ -73,12 +73,13 @@ export class FSMStateManager {
         this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'connect', listener: this._onConnect });
         this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'initial', listener: this._onInitial });
         this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'edit', listener: this._onEdit });
+        this._reloadNumbering();
     }
 
     addState(point) {
         point = point || { x: 50, y: 50 }
         let state = new State({
-            text: 'S' + this._getNumber(),
+            text: 'S' + this._nextNum++,
             position: point
         });
         this._sandbox.sendMessage(this.ADD_ITEM, state);
@@ -111,6 +112,7 @@ export class FSMStateManager {
         if (text !== undefined) {
             const oldText = state.getText();
             state.setText(text);
+            this._processNewName(text);
             this._sandbox.raiseEvent(this.STATE_EDITED_EVENT, { state: state, changes: [{ name: 'text', oldValue: oldText }] });
             this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
         }
@@ -162,8 +164,17 @@ export class FSMStateManager {
         this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'new', listener: this._onNew });
     }
 
-    _getNumber() {
-        return 10;
+    _reloadNumbering() {
+        this._nextNum = 0;
+        let states = this._sandbox.sendMessage(this.GET_ITEMS, (item) => item instanceof State);
+        states.forEach(state => this._processNewName(state.getText()));
+    }
+
+    _processNewName(name) {
+        if (name && /^S\d+$/.test(name)) {
+            const number = parseInt(name.substring(1));
+            if (number > this._nextNum) this._nextNum = number + 1;
+        }
     }
 
     _operateOnSelectedState(operation) {
@@ -188,6 +199,7 @@ export class FSMStateManager {
                     this.changeEntryPoint({ item: states[0] });
                 }
             }
+            this._reloadNumbering();
         }
     }
 
