@@ -246,7 +246,7 @@ export class Transition extends Shape {
         else if (type === CircularArrow && data.radius) {
             const radius = data.radius + this._textMargin;
             position = MathUtils.getPointOnCircleGivenAngle(data.center, radius, MathUtils.getMidAngleOfArc(data.startAngle, data.endAngle, data.reverse));
-            const offsets = this._calculateOffsets(data.center, data.radius, position);
+            const offsets = this._calculateOffsets(data.center, radius, position);
             offsetX = offsets.x;
             offsetY = offsets.y;
         }
