@@ -29,6 +29,7 @@ export class Transition extends Shape {
         this._selfLinkAngle = 0.75;
         this._colinearTolerance = 5;
 
+        this._textMargin = config.textMargin === undefined ? 10 : config.textMargin;
         this._textBox = new TextBox({
             position: this._position,
             text: config.text || '',
@@ -42,6 +43,7 @@ export class Transition extends Shape {
     }
 
     setText(text) {
+        if (text === undefined || text.trim() === '') text = '$';
         this._textBox.setText(text);
     }
 
@@ -122,16 +124,6 @@ export class Transition extends Shape {
     pointerOut() {
         super.pointerOut();
         this._arrow.pointerOut();
-    }
-
-    _pointsWereMoved(from, to, position) {
-        if (!this._lastData) {
-            return true;
-        }
-        let fromChanged = from ? !MathUtils.arePointsEqual(this._lastData.from, from) : false;
-        let toChanged = to ? !MathUtils.arePointsEqual(this._lastData.to, to) : false;
-        let positionChanged = position ? !MathUtils.arePointsEqual(this._lastData.position, position) : false;
-        return fromChanged || toChanged || positionChanged;
     }
 
     _createSelfTransition() {
@@ -240,10 +232,23 @@ export class Transition extends Shape {
         let offsetX = null;
         let offsetY = null;
         if (type === StraightArrow && !MathUtils.arePointsEqual(data.from, data.to)) {
-            position = MathUtils.translateVector(MathUtils.vecByScalMul(MathUtils.getVector(data.from, data.to), 0.5), data.from);
+            const middle = MathUtils.translateVector(MathUtils.vecByScalMul(MathUtils.getVector(data.from, data.to), 0.5), data.from);
+            const normal = MathUtils.getNormalVector(data.from, data.to, false);
+            position = MathUtils.translateVector(MathUtils.vecByScalMul(normal, this._textMargin), middle);
+
+            const radius = MathUtils.distance(data.from, data.to) / 2 + this._textMargin;
+            const center = MathUtils.translateVector(MathUtils.vecByScalMul(normal, -radius), position);
+
+            const offsets = this._calculateOffsets(center, radius, position);
+            offsetX = offsets.x;
+            offsetY = offsets.y;
         }
-        else if (type === CircularArrow) {
-            position = MathUtils.getPointOnCircleGivenAngle(data.center, data.radius, MathUtils.getMidAngleOfArc(data.startAngle, data.endAngle, data.reverse));
+        else if (type === CircularArrow && data.radius) {
+            const radius = data.radius + this._textMargin;
+            position = MathUtils.getPointOnCircleGivenAngle(data.center, radius, MathUtils.getMidAngleOfArc(data.startAngle, data.endAngle, data.reverse));
+            const offsets = this._calculateOffsets(data.center, data.radius, position);
+            offsetX = offsets.x;
+            offsetY = offsets.y;
         }
         this._textBox.move(position);
         this._textBox.configure({
@@ -252,26 +257,49 @@ export class Transition extends Shape {
         });
     }
 
+    _calculateOffsets(center, radius, position) {
+        const yVec = position.y - center.y;
+        const offsetY = Math.abs(yVec + radius) / (radius * 2); // linear interpolation sufficient
+
+        const xDist = position.x - (center.x - radius);
+        const k = this._textBox.getWidth() / this._textBox.getHeight();
+        const offsetX = 1 / (1 + Math.exp(k * (xDist / radius - 1))); // tuned logistic function needed
+
+        return { x: offsetX, y: offsetY };
+    }
+
     _updateArrowIfNeeded() {
         let from = this.firstItem.getPosition();
         let to = this.secondItem ? this.secondItem.getPosition() : this.getPosition();
         let position = this.getPosition();
+        let text = this._textBox._text;
         if (this.isSelfLink()) {
-            if (this._pointsWereMoved(from, null, position)) {
+            if (this._updateNeeded(from, null, position, text)) {
                 this._createSelfTransition();
             }
         }
         else if (!this.isSet || this._sagitta === 0) {
-            if (this._pointsWereMoved(from, to, position)) {
+            if (this._updateNeeded(from, to, position, text)) {
                 this._createStraightTransition();
             }
         }
         else {
-            if (this._pointsWereMoved(from, to, position)) {
+            if (this._updateNeeded(from, to, position, text)) {
                 this._createCircularTransition();
             }
         }
-        this._lastData = { from: from, to: to, position: position };
+        this._lastData = { from: from, to: to, position: position, text: this._textBox._text };
+    }
+
+    _updateNeeded(from, to, position, text) {
+        if (!this._lastData) {
+            return true;
+        }
+        let fromChanged = from ? !MathUtils.arePointsEqual(this._lastData.from, from) : false;
+        let toChanged = to ? !MathUtils.arePointsEqual(this._lastData.to, to) : false;
+        let positionChanged = position ? !MathUtils.arePointsEqual(this._lastData.position, position) : false;
+        let textChanged = text !== undefined ? this._lastData.text !== text : false;
+        return fromChanged || toChanged || positionChanged || textChanged;
     }
 
     _decoratedDraw(context) {

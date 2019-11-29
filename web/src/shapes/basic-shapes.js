@@ -12,7 +12,10 @@ export class TextBox extends Shape {
         this._font = '1em sans-serif';
         this._offsetX = 0;
         this._offsetY = 0;
+        this._width = 0;
+        this._height = 0;
         this.configure(config);
+        this._measureText();
     }
 
     configure(config) {
@@ -23,16 +26,33 @@ export class TextBox extends Shape {
 
     setText(text) {
         this._text = text;
+        this._measureText();
+    }
+
+    getWidth() {
+        return this._width;
+    }
+
+    getHeight() {
+        return this._height;
+    }
+
+    _measureText(context) {
+        if (!context) {
+            context = document.createElement('canvas').getContext('2d');
+            context.font = this.font;
+        }
+        this._width = context.measureText(this._text).width;
+        this._height = context.measureText('O').width; // dirty approximation
     }
 
     _decoratedDraw(context) {
-        if (this._text) {
+        if (this._text && this._position.x !== null && this._position.y !== null) {
             context.font = this._font;
-            let width = context.measureText(this._text).width;
-            let height = context.measureText('O').width; // dirty approximation
             let temp = context.fillStyle;
             context.fillStyle = context.strokeStyle;
-            context.fillText(this._text, this._position.x - width * this._offsetX, this._position.y + height * this._offsetY);
+            this._measureText(context);
+            context.fillText(this._text, this._position.x - this._width * this._offsetX, this._position.y + this._height * this._offsetY);
             context.fillStyle = temp;
         }
     }

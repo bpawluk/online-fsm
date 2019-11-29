@@ -179,5 +179,9 @@ export let MathUtils = {
             }
         }
         return mid;
+    },
+
+    capValue: function(min, value, max) {
+        return Math.min(Math.max(value, min), max);
     }
 }
