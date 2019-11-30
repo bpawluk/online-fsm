@@ -101,7 +101,7 @@ export class FSMTransitionManager {
         this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Enter', listener: this._onEdit });
         let save = () => {
             let result = this._sandbox.sendMessage(this.HIDE_POPUP);
-            let text = result.find((e) => e.name === 'state-name').value;
+            let text = result.find((e) => e.name === 'condition').value;
             this.endEditTransition(transition, text);
         };
         let cancel = () => {
@@ -109,8 +109,8 @@ export class FSMTransitionManager {
             this.endEditTransition(transition);
         };
         this._sandbox.sendMessage(this.SHOW_POPUP, {
-            message: 'Please enter conditions for the transition separated by a comma',
-            input: [{ name: 'state-name', label: 'State name' }],
+            message: 'Please enter a set of unseparated symbols activating the transition.\nUse dollar sign ($) for the empty string.',
+            input: [{ name: 'condition', label: 'Transition condition' }],
             buttons: [{ text: 'Save', onClick: save }, { text: 'Cancel', onClick: cancel }],
             onEscape: cancel,
             onEnter: save
@@ -120,7 +120,7 @@ export class FSMTransitionManager {
     endEditTransition(transition, text) {
         if (text !== undefined) {
             const oldText = transition.getText();
-            transition.setText(text);
+            transition.setText(this._parseText(text));
             this._sandbox.raiseEvent(this.TRANSITION_EDITED_EVENT, { transition: transition, changes: [{ name: 'text', oldValue: oldText }] });
             this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
         }
@@ -152,6 +152,15 @@ export class FSMTransitionManager {
         if (selected && (!constructor || selected instanceof constructor)) {
             return operation(selected);
         }
+    }
+
+    _parseText(text) {
+        return text
+            .split('')
+            .filter(function (item, pos, self) {
+                return self.indexOf(item) === pos;
+            })
+            .join(', ');
     }
 
     _onItemPressed(e) {

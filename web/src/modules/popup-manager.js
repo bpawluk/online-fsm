@@ -169,6 +169,7 @@ export class PopupManager {
         let text = document.createElement('p');
         text.id = 'message';
         text.style['margin-bottom'] = '8px';
+        text.style['text-align'] = 'center';
         content.appendChild(text);
 
         let input = document.createElement('div');
