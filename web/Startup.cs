@@ -37,7 +37,7 @@ namespace aspnetcoreapp
             }
             else
             {
-                app.UseExceptionHandler("/Home/Error");
+                app.UseExceptionHandler("/App/Error");
                 app.UseHsts();
             }
 
@@ -57,7 +57,7 @@ namespace aspnetcoreapp
             {
                 routes.MapRoute(
                     name: "default",
-                    template: "{controller=Home}/{action=Index}/{id?}");
+                    template: "{controller=App}/{action=Intro}/{id?}");
             });
 
         }

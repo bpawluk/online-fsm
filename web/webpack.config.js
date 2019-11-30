@@ -1,9 +1,12 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/app.js',
+  entry: {
+    designer: './src/designer.js', 
+    simulator: './src/simulator.js'
+  },
   output: {
-    filename: 'designer.js',
+    filename: '[name].js',
     path: path.resolve(__dirname, 'wwwroot/js'),
   },
 };

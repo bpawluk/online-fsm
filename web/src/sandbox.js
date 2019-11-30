@@ -17,6 +17,10 @@ export class Sandbox {
         return this._core.sendMessage(key, message);
     }
 
+    handshake(key) {
+        return this._core.handshake(key);
+    }
+
     createEvent(name) {
         this._core.createEvent(name);
     }

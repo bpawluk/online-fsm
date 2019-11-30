@@ -196,6 +196,10 @@ export class Mediator {
 
         return receivers.get(key)(message);
     }
+
+    handshake(key) {
+        return this._receivers.has(key);
+    }
 }
 
 export class ModulesManager {
@@ -247,6 +251,14 @@ export class ModulesManager {
             success = true;
         }
         return success;
+    }
+
+    stopAll() {
+        for (let module of this._modules.values()) {
+            if (module.isRunning) {
+                module.stop();
+            }
+        }
     }
 
     stop(moduleName) {

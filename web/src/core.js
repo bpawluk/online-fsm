@@ -7,8 +7,6 @@ export class Core {
         // Provides:
         this.APP_INIT_EVENT = 'app-init';
 
-        // Depends on:
-
         // Requires interfaces:
         this.MODULE_INTERFACE = 'module';
 
@@ -30,7 +28,6 @@ export class Core {
             this._isInit = true;
             this.raiseEvent(this.APP_INIT_EVENT);
         }
-        return null;
     }
 
     addModule(constructor, name, config) {
@@ -64,6 +61,10 @@ export class Core {
 
     sendMessage(key, message) {
         return this._mediator.send(key, message);
+    }
+
+    handshake(key) {
+        return this._mediator.handshake(key);
     }
 
     createEvent(name) {

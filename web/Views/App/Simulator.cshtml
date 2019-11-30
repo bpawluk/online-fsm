@@ -2,12 +2,11 @@
     <div id="workspace"></div>
     <div class="workspace-footer">
         <div class="dock">
-            <button id="add" class="dock-item">Add</button>
-            <button id="connect" class="dock-item">Connect</button>
-            <button id="accept" class="dock-item">Accept</button>
-            <button id="initial" class="dock-item">Initial</button>
-            <button id="edit" class="dock-item">Edit</button>
-            <button id="delete" class="dock-item">Delete</button>
+            <button id="start" class="dock-item">Start</button>
+            <button id="back" class="dock-item">Back</button>
+            <button id="forward" class="dock-item">Forward</button>
+            <button id="end" class="dock-item">End</button>
+            <button id="restart" class="dock-item">Restart</button>
         </div>
     </div>
 </div>
@@ -16,15 +15,15 @@
         <button id="new" class="top-button">New</button>
         <button id="save" class="top-button">Save</button>
         <button id="load" class="top-button">Load</button>
-        <button id="run" class="top-button">Run</button>
+        <button id="edit" class="top-button" onclick="window.location.href = '/App/Designer';">Edit</button>
     </div>
 }
 @section Styles {
-<link href="~/css/designer.css" rel="stylesheet" type="text/css">
+<link href="~/css/app.css" rel="stylesheet" type="text/css">
 }
 @section Scripts{
 <environment include="Development">
-    <script type="module" src="~/app.js"></script>
+    <script type="module" src="~/simulator.js"></script>
     <script type="module" src="~/common-utils.js"></script>
     <script type="module" src="~/core-utils.js"></script>
     <script type="module" src="~/sandbox.js"></script>
@@ -33,17 +32,14 @@
     <script type="module" src="~/modules/dom-manager.js"></script>
     <script type="module" src="~/modules/interaction.js"></script>
     <script type="module" src="~/modules/workspace.js"></script>
-    <script type="module" src="~/modules/ruler.js"></script>
-    <script type="module" src="~/modules/fsm-lifecycle-manager.js"></script>
+    <script type="module" src="~/modules/fsm-loader.js"></script>
     <script type="module" src="~/modules/fsm-cache-manager.js"></script>
-    <script type="module" src="~/modules/fsm-state-manager.js"></script>
-    <script type="module" src="~/modules/fsm-transition-manager.js"></script>
     <script type="module" src="~/shapes/shape.js"></script>
     <script type="module" src="~/shapes/basic-shapes.js"></script>
     <script type="module" src="~/shapes/state-shape.js"></script>
     <script type="module" src="~/shapes/transition-shape.js"></script>
 </environment>
 <environment exclude="Development">
-    <script src="~/js/designer.js"></script>
+    <script src="~/js/simulator.js"></script>
 </environment>
 }

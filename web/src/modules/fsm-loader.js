@@ -3,7 +3,7 @@
 import { State } from '../shapes/state-shape.js';
 import { Transition } from '../shapes/transition-shape.js';
 
-export class FSMLifecycleManager {
+export class FSMLoader {
     constructor(sandbox) {
         // Provides:
 
@@ -25,7 +25,6 @@ export class FSMLifecycleManager {
         this._sandbox = sandbox;
 
         this._onNew = () => { if (this.isRunning) this._onNewClicked() };
-        this._onRun = () => { if (this.isRunning) this._onRunClicked() };
     }
 
     init() {
@@ -44,7 +43,6 @@ export class FSMLifecycleManager {
     onAppInit() {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
         this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'new', listener: this._onNew });
-        this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'run', listener: this._onRun });
         this._sandbox.sendMessage(this.LOAD_CACHE);
     }
 
@@ -63,7 +61,6 @@ export class FSMLifecycleManager {
 
     cleanUp() {
         this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'new', listener: this._onNew });
-        this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'run', listener: this._onRun });
     }
 
     _clearDesigner() {
@@ -95,11 +92,9 @@ export class FSMLifecycleManager {
         });
     }
 
-    _onRunClicked() {
-        
-    }
-
     _unfocusWorkspace() {
-        this._sandbox.sendMessage(this.SELECT_ITEM, { item: null });
+        if(this._sandbox.handshake(this.SELECT_ITEM)){
+            this._sandbox.sendMessage(this.SELECT_ITEM, { item: null });
+        }
     }
 }

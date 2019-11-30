@@ -1,7 +1,7 @@
 'use strict'
 
 export class FSMCacheManager {
-    constructor(sandbox) {
+    constructor(sandbox, config) {
         // Provides:
         this.SAVE_CACHE = 'fsm-save-cache';
         this.LOAD_CACHE = 'fsm-load-cache';
@@ -22,9 +22,12 @@ export class FSMCacheManager {
         this.isRunning = false;
         this._sandbox = sandbox;
 
+        config = config || {}
+
         this._saveSpan = 5000;
         this._lastSave = null;
         this._isWaiting = false;
+        this._autosaving = !!config.autosaving;
     }
 
     init() {
@@ -39,12 +42,14 @@ export class FSMCacheManager {
             this._sandbox.registerMessageReceiver(this.SAVE_CACHE, this.saveCache.bind(this));
             this._sandbox.registerMessageReceiver(this.LOAD_CACHE, this.loadCache.bind(this));
             this._sandbox.registerMessageReceiver(this.CLEAR_CACHE, this.clearCache.bind(this));
-            this._sandbox.registerListener(this.STATE_CREATED_EVENT, { callback: this._saveChanges, thisArg: this });
-            this._sandbox.registerListener(this.STATE_EDITED_EVENT, { callback: this._saveChanges, thisArg: this });
-            this._sandbox.registerListener(this.STATE_DELETED_EVENT, { callback: this._saveChanges, thisArg: this });
-            this._sandbox.registerListener(this.TRANSITION_CREATED_EVENT, { callback: this._saveChanges, thisArg: this });
-            this._sandbox.registerListener(this.TRANSITION_EDITED_EVENT, { callback: this._saveChanges, thisArg: this });
-            this._sandbox.registerListener(this.TRANSITION_DELETED_EVENT, { callback: this._saveChanges, thisArg: this });
+            if (this._autosaving) {
+                this._sandbox.registerListener(this.STATE_CREATED_EVENT, { callback: this._saveChanges, thisArg: this });
+                this._sandbox.registerListener(this.STATE_EDITED_EVENT, { callback: this._saveChanges, thisArg: this });
+                this._sandbox.registerListener(this.STATE_DELETED_EVENT, { callback: this._saveChanges, thisArg: this });
+                this._sandbox.registerListener(this.TRANSITION_CREATED_EVENT, { callback: this._saveChanges, thisArg: this });
+                this._sandbox.registerListener(this.TRANSITION_EDITED_EVENT, { callback: this._saveChanges, thisArg: this });
+                this._sandbox.registerListener(this.TRANSITION_DELETED_EVENT, { callback: this._saveChanges, thisArg: this });
+            }
             this.isRunning = true;
         }
     }
@@ -72,12 +77,14 @@ export class FSMCacheManager {
     stop() {
         if (this.isRunning) {
             this.isRunning = false;
-            this._sandbox.unregisterListener(this.STATE_CREATED_EVENT, this._saveChanges);
-            this._sandbox.unregisterListener(this.STATE_EDITED_EVENT, this._saveChanges);
-            this._sandbox.unregisterListener(this.STATE_DELETED_EVENT, this._saveChanges);
-            this._sandbox.unregisterListener(this.TRANSITION_CREATED_EVENT, this._saveChanges);
-            this._sandbox.unregisterListener(this.TRANSITION_EDITED_EVENT, this._saveChanges);
-            this._sandbox.unregisterListener(this.TRANSITION_DELETED_EVENT, this._saveChanges);
+            if (this._autosaving) {
+                this._sandbox.unregisterListener(this.STATE_CREATED_EVENT, this._saveChanges);
+                this._sandbox.unregisterListener(this.STATE_EDITED_EVENT, this._saveChanges);
+                this._sandbox.unregisterListener(this.STATE_DELETED_EVENT, this._saveChanges);
+                this._sandbox.unregisterListener(this.TRANSITION_CREATED_EVENT, this._saveChanges);
+                this._sandbox.unregisterListener(this.TRANSITION_EDITED_EVENT, this._saveChanges);
+                this._sandbox.unregisterListener(this.TRANSITION_DELETED_EVENT, this._saveChanges);
+            }  
             this._sandbox.unregisterMessageReceiver(this.SAVE_CACHE);
             this._sandbox.unregisterMessageReceiver(this.LOAD_CACHE);
             this._sandbox.unregisterMessageReceiver(this.CLEAR_CACHE);
