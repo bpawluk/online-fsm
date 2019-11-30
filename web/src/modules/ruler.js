@@ -5,6 +5,7 @@ export class Ruler {
         // Depends on:
         this.ADD_ITEM = 'workspace-add-item';
         this.MOVE_ITEM = 'workspace-move-item';
+        this.REMOVE_ITEM = 'workspace-remove-item';
         this.APP_INIT_EVENT = 'app-init';
         this.ITEM_MOVED_EVENT = 'workspace-item-moved';
 
@@ -42,46 +43,48 @@ export class Ruler {
     }
 
     draw(context) {
-        let canvas = context.canvas;
+        if (this.isRunning) {
+            let canvas = context.canvas;
 
-        let smallerDim = {
-            name: 'height',
-            value: canvas.height
-        };
-        let biggerDim = {
-            name: 'width',
-            value: canvas.width
-        };
+            let smallerDim = {
+                name: 'height',
+                value: canvas.height
+            };
+            let biggerDim = {
+                name: 'width',
+                value: canvas.width
+            };
 
-        if (canvas.width < canvas.height) {
-            let temp = smallerDim;
-            smallerDim = biggerDim;
-            biggerDim = temp;
-        }
+            if (canvas.width < canvas.height) {
+                let temp = smallerDim;
+                smallerDim = biggerDim;
+                biggerDim = temp;
+            }
 
-        context.save();
-        context.strokeStyle = '#ebebeb'
-        context.beginPath();
+            context.save();
+            context.strokeStyle = '#ebebeb'
+            context.beginPath();
 
-        let i = this._distance;
-        for (; i < smallerDim.value; i += this._distance) {
-            context.moveTo(0, i);
-            context.lineTo(canvas.width, i);
-            context.moveTo(i, 0);
-            context.lineTo(i, canvas.height);
-        }
-        for (; i < biggerDim.value; i += this._distance) {
-            if (biggerDim.name = 'width') {
-                context.moveTo(i, 0);
-                context.lineTo(i, canvas.height);
-            } else {
+            let i = this._distance;
+            for (; i < smallerDim.value; i += this._distance) {
                 context.moveTo(0, i);
                 context.lineTo(canvas.width, i);
+                context.moveTo(i, 0);
+                context.lineTo(i, canvas.height);
             }
-        }
+            for (; i < biggerDim.value; i += this._distance) {
+                if (biggerDim.name = 'width') {
+                    context.moveTo(i, 0);
+                    context.lineTo(i, canvas.height);
+                } else {
+                    context.moveTo(0, i);
+                    context.lineTo(canvas.width, i);
+                }
+            }
 
-        context.stroke();
-        context.restore();
+            context.stroke();
+            context.restore();
+        }
     }
 
     onItemMoved(e) {
@@ -100,7 +103,11 @@ export class Ruler {
         }
     }
 
-    cleanUp() { }
+    cleanUp() {
+        if (this._isVisible) {
+            this._sandbox.sendMessage(this.REMOVE_ITEM, this);
+        }
+    }
 
     _pull(bounds, x, y) {
         return {

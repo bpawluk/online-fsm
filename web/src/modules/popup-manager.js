@@ -44,6 +44,7 @@ export class PopupManager {
         this._popup.container.style['display'] = 'flex';
 
         data = data || {};
+        let focused = data.focused || null;
 
         if (data.message) {
             this._popup.text.innerText = data.message;
@@ -67,8 +68,10 @@ export class PopupManager {
                 ipt.addEventListener('input', input.onChange)
                 this._popup.input.appendChild(ipt);
             });
-            let firstInput = this._popup.input.getElementsByTagName('input')[0];
-            if (firstInput) firstInput.focus();
+
+            if (!focused) {
+                focused = this._popup.input.getElementsByTagName('input')[0];
+            }
         }
 
         if (data.buttons) {
@@ -81,6 +84,10 @@ export class PopupManager {
                 btn.addEventListener('click', button.onClick);
                 this._popup.buttons.appendChild(btn);
             });
+
+            if (!focused) {
+                focused = this._popup.buttons.getElementsByTagName('button')[0];
+            }
         }
 
         if (typeof data.onEnter === 'function') {
@@ -92,6 +99,8 @@ export class PopupManager {
             this._popup.onEscape = data.onEscape;
             this._sandbox.sendMessage(this.ADD_KEY_LISTENER, { key: 'Escape', listener: this._popup.onEscape });
         }
+
+        if (focused) focused.focus();
     }
 
     hidePopup() {
@@ -102,7 +111,8 @@ export class PopupManager {
 
         if (typeof this._popup.onEscape === 'function') {
             this._sandbox.sendMessage(this.REMOVE_KEY_LISTENER, { key: 'Enter', listener: this._popup.onEscape });
-            this._popup.onEscape = null;        }
+            this._popup.onEscape = null;
+        }
 
         this._popup.text.innerText = '';
 

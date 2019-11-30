@@ -56,7 +56,6 @@ export class FSMCacheManager {
 
     saveCache() {
         localStorage.setItem('fsm-data', this._sandbox.sendMessage(this.SERIALIZE_FSM));
-        console.log('SAVED | PREV ' + (Date.now() - this._lastSave) / 1000 + ' seconds ago');
         this._lastSave = Date.now();
 
     }
