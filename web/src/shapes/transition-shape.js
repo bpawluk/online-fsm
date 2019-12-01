@@ -51,6 +51,10 @@ export class Transition extends Shape {
         return this._textBox._text;
     }
 
+    getConditions() {
+        return this.getText().split(', ');
+    }
+
     isSelfLink() {
         return this.firstItem === this.secondItem;
     }

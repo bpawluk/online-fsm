@@ -177,7 +177,6 @@ export class Circle extends Shape {
     _decoratedDraw(context) {
         context.beginPath();
         context.arc(this._position.x, this._position.y, this._radius, 0, 2 * Math.PI);
-        context.fillStyle = '#FFFFFF';
         context.fill();
         context.stroke();
     }

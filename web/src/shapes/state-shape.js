@@ -13,6 +13,7 @@ export class State extends Circle {
 
         this.isAccepting = config.accept === undefined ? false : config.accept;
         this.isEntry = config.entry === undefined ? false : config.entry;
+        this._isActive = false;
         this._textBox = new TextBox({
             position: this._position,
             text: config.text || '',
@@ -24,6 +25,10 @@ export class State extends Circle {
 
     accept(value) {
         this.isAccepting = !!value;
+    }
+
+    setActive(active) {
+        this._isActive = !!active;
     }
 
     setAsEntry(value) {
@@ -44,6 +49,10 @@ export class State extends Circle {
     }
 
     _decoratedDraw(context) {
+        if (this._isActive) {
+            context.fillStyle = '#B2DFEE'
+            context.strokeStyle = '#000000'
+        }
         super._decoratedDraw(context);
         this._textBox._decoratedDraw(context);
         if (this.isAccepting) {

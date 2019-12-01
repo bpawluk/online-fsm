@@ -1,0 +1,66 @@
+.workspace-wrapper {
+    padding-bottom: 80px;
+    width: 100%; 
+    height: 100%; 
+}
+
+#workspace-message {
+    position: relative;
+    top: 0;
+    text-align: center;
+    padding: 5px;
+}
+
+#workspace {
+    padding: 0;
+    margin: 0;
+    width: 100%; 
+    height: 100%; 
+    display:inline-block;
+    overflow: auto;
+    line-height: 0px;
+}
+
+.workspace-footer {
+    position: absolute;
+    background-image: linear-gradient(to bottom, white, #eeeeee);
+    border-style: solid;
+    border-width: 1px 0px 0px 0px;
+    border-color: #cdcdcd;
+    bottom: 0;
+    width: 100%;
+    height: 80px;
+    text-align: center;
+}
+
+.dock {
+    height: 50%;
+}
+
+.dock-item {
+    height: 30px;
+    margin: 5px;
+    padding: 5px;
+}
+
+#input-string {
+    min-width: 100px;
+    display: inline-block;
+    max-width: 80%;
+}
+
+.current-input {
+    background-color:#B2DFEE;
+}
+
+.top-panel {
+    position: absolute;
+    display:inline-block;
+    right: 10px;
+}
+
+.top-button {
+    height: 30px;
+    margin: 5px;
+    padding: 5px;
+}

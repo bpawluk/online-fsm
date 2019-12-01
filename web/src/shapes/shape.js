@@ -22,12 +22,15 @@ export class Shape {
             switch (this._visualState) {
                 case 'default':
                     context.strokeStyle = '#000000';
+                    context.fillStyle = '#FFFFFF';
                     break;
                 case 'hovered':
                     context.strokeStyle = '#3BA7FF';
+                    context.fillStyle = '#FFFFFF';
                     break;
                 case 'selected':
                     context.strokeStyle = '#336699';
+                    context.fillStyle = '#FFFFFF';
                     break;
                 default:
                     throw new Error('There is no ' + this._visualState + ' visual state defined.');

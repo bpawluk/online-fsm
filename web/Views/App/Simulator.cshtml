@@ -1,12 +1,17 @@
 <div class="workspace-wrapper">
+    <div class="message-wrapper"><p id="workspace-message"></p></div>
     <div id="workspace"></div>
     <div class="workspace-footer">
         <div class="dock">
-            <button id="back" class="dock-item">Previous</button>
+            <label class="input-label">Input:</label>
+            <span id="input-string"></span>
+            <button id="restart" class="dock-item">Set input</button>
+        </div>
+        <div class="dock">
             <button id="start" class="dock-item">Reset</button>
-            <button id="restart" class="dock-item">Restart</button>
-            <button id="end" class="dock-item">Read all</button>
+            <button id="back" class="dock-item">Prev</button>
             <button id="forward" class="dock-item">Next</button>
+            <button id="end" class="dock-item">Read all</button>
         </div>
     </div>
 </div>
@@ -19,7 +24,7 @@
     </div>
 }
 @section Styles {
-<link href="~/css/app.css" rel="stylesheet" type="text/css">
+<link href="~/css/simulator.css" rel="stylesheet" type="text/css">
 }
 @section Scripts{
 <environment include="Development">
@@ -34,6 +39,7 @@
     <script type="module" src="~/modules/workspace.js"></script>
     <script type="module" src="~/modules/fsm-loader.js"></script>
     <script type="module" src="~/modules/fsm-cache-manager.js"></script>
+    <script type="module" src="~/modules/fsm-simulator.js"></script>
     <script type="module" src="~/shapes/shape.js"></script>
     <script type="module" src="~/shapes/basic-shapes.js"></script>
     <script type="module" src="~/shapes/state-shape.js"></script>
