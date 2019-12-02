@@ -36,11 +36,11 @@ export class FSMSimulator {
         this._messageContainer;
         this._inputContainer;
 
-        this._onBack = () => { if (this.isRunning) this._onSimulationStep(true) };
-        this._onStart = () => { if (this.isRunning) this._resetSimulation() };
-        this._onRestart = () => { if (this.isRunning) this._onRestartClicked() };
-        this._onEnd = () => { if (this.isRunning) this._onEndClicked() };
-        this._onForward = () => { if (this.isRunning) this._onSimulationStep(false) };
+        this._onBack = () => { if (this.isRunning) this.stepBack() };
+        this._onStart = () => { if (this.isRunning) this.backToStart() };
+        this._onRestart = () => { if (this.isRunning) this._editInputString() };
+        this._onEnd = () => { if (this.isRunning) this.readAll() };
+        this._onForward = () => { if (this.isRunning) this.readNext() };
     }
 
     init() {
@@ -53,6 +53,56 @@ export class FSMSimulator {
     start() {
         if (!this.isRunning) {
             this.isRunning = true;
+        }
+    }
+
+    backToStart() {
+        this._currentPosition = 0;
+        this._currentStates.forEach(state => state.setActive(false));
+        this._currentStates = [];
+        this._activateState(this._entry);
+        this._refreshInput();
+        this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+    }
+
+    stepBack() {
+        const limit = this._currentPosition - 1;
+        this.backToStart();
+        while (this._currentPosition < limit) {
+            this.readNext();
+        }
+    }
+
+    readNext() {
+        const nextPosition = this._currentPosition + 1;
+        if (0 <= nextPosition && nextPosition <= this._input.length) {
+            let symbol = this._input.charAt(this._currentPosition);
+            let nextStates = new Set();
+            while (this._currentStates.length > 0) {
+                const current = this._currentStates.pop();
+                current.setActive(false);
+
+                const transitions = this._transitions.get(current).outgoing;
+
+                if (transitions.has(symbol)) {
+                    transitions.get(symbol).forEach((state) => nextStates.add(state));
+                }
+            }
+
+            this._currentPosition = nextPosition;
+            this._refreshInput();
+            nextStates.forEach(state => this._activateState(state));
+            this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
+
+            if (this._currentPosition >= this._input.length || this._currentStates.length === 0) {
+                this._endReached(!!this._currentStates.find((state) => state.isAccepting));
+            }
+        }
+    }
+
+    readAll() {
+        while (this._currentPosition < this._input.length) {
+            this.readNext();
         }
     }
 
@@ -88,6 +138,7 @@ export class FSMSimulator {
     }
 
     _resetData() {
+        this._input = null;
         this._entry = null;
         this._alphabet = new Set();
         this._transitions = new Map();
@@ -129,15 +180,15 @@ export class FSMSimulator {
         });
     }
 
-    _activateState(state, backward) {
+    _activateState(state) {
         this._currentStates.push(state);
         state.setActive(true);
 
-        let transitions = backward ? this._transitions.get(state).incoming : this._transitions.get(state).outgoing;
+        let transitions = this._transitions.get(state).outgoing;
         if (transitions.has('$')) {
             transitions.get('$').forEach((nextState) => {
                 if (!this._currentStates.includes(nextState)) {
-                    this._activateState(nextState, backward)
+                    this._activateState(nextState)
                 }
             });
         }
@@ -147,16 +198,7 @@ export class FSMSimulator {
         this._messageContainer.innerText = 'Processing completed. Input ' + (accepted ? 'accepted!' : 'rejected!');
     }
 
-    _resetSimulation() {
-        this._currentPosition = 0;
-        this._currentStates.forEach(state => state.setActive(false));
-        this._currentStates = [];
-        this._activateState(this._entry);
-        this._refreshInput();
-        this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
-    }
-
-    _onRestartClicked() {
+    _editInputString() {
         let save = () => {
             let result = this._sandbox.sendMessage(this.HIDE_POPUP);
             this._setUserInput(result.find((e) => e.name === 'fsm-user-input').value);
@@ -171,39 +213,6 @@ export class FSMSimulator {
         });
     }
 
-    _onEndClicked() {
-
-    }
-
-    _onSimulationStep(backward) {
-        const nextPosition = backward ? this._currentPosition - 1 : this._currentPosition + 1;
-        if (0 <= nextPosition && nextPosition < this._input.length) {
-            let symbol = this._input.charAt(this._currentPosition);
-            let nextStates = new Set();
-            while (this._currentStates.length > 0) {
-                const current = this._currentStates.pop();
-                current.setActive(false);
-
-                const transitions = backward ? this._transitions.get(current).incoming : this._transitions.get(current).outgoing;
-
-                if (!transitions.has(symbol) || transitions.get(symbol).size === 0) {
-                    nextStates.add(current);
-                } else {
-                    transitions.get(symbol).forEach((state) => nextStates.add(state));
-                }
-            }
-
-            this._currentPosition = nextPosition;
-            this._refreshInput();
-            nextStates.forEach(state => this._activateState(state, backward));
-            this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
-
-            if(this._currentPosition >= this._input.length) {
-                this._endReached(!!this._currentStates.find((state) => state.isAccepting));
-            }
-        }
-    }
-
     _setUserInput(input) {
         let newInput = '';
         for (let i = 0, len = input.length; i < len; i++) {
@@ -213,22 +222,8 @@ export class FSMSimulator {
             }
         }
         this._input = newInput;
-        this._resetSimulation();
-
-        if (this._input.length > 0) {
-            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'back', disabled: false });
-            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'start', disabled: false });
-            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'end', disabled: false });
-            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'forward', disabled: false });
-            this._messageContainer.innerHTML = 'Use bottom panel to control the simulation.';
-        } else {
-            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'back', disabled: true });
-            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'start', disabled: true });
-            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'end', disabled: true });
-            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'forward', disabled: true });
-            this._messageContainer.innerHTML = 'Please enter input string to run the simulation.';
-        }
-
+        this.backToStart();
+        this._refreshControls();
     }
 
     _refreshInput() {
@@ -241,6 +236,22 @@ export class FSMSimulator {
                 + this._input.substring(this._currentPosition + 1, this._input.length);
         } else {
             this._inputContainer.innerHTML = this._input;
+        }
+    }
+
+    _refreshControls() {
+        if (this._input !== null && this._input.length > 0) {
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'back', disabled: false });
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'start', disabled: false });
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'end', disabled: false });
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'forward', disabled: false });
+            this._messageContainer.innerHTML = 'Use bottom panel to control the simulation.';
+        } else {
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'back', disabled: true });
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'start', disabled: true });
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'end', disabled: true });
+            this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'forward', disabled: true });
+            this._messageContainer.innerHTML = 'Please enter input string to run the simulation.';
         }
     }
 }
