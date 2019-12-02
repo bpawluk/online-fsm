@@ -72,6 +72,15 @@ export class Line extends Shape {
         return Object.assign({}, this._startPoint);
     }
 
+    getBounds() {
+        return {
+            left: Math.min(this._startPoint.x, this._position.x),
+            top: Math.min(this._startPoint.y, this._position.y),
+            right: Math.max(this._startPoint.x, this._position.x),
+            bottom: Math.max(this._startPoint.y, this._position.y)
+        }
+    }
+
     setStart(point) {
         this._startPoint.x = point.x;
         this._startPoint.y = point.y;
@@ -99,6 +108,18 @@ export class Arc extends Shape {
         this._endAngle = config.end === undefined ? 0 : config.end;
         this._reverse = config.reverse === undefined ? 0 : config.reverse;
         this._distanceToleration = config.distanceToleration === undefined ? 5 : config.distanceToleration;
+    }
+
+    getBounds() {
+        let from = MathUtils.getPointOnCircleGivenAngle(this._position, this._radius, this._startAngle);
+        let mid = MathUtils.getPointOnCircleGivenAngle(this._position, this._radius, MathUtils.getMidAngleOfArc(this._startAngle, this._endAngle, this._reverse));
+        let to = MathUtils.getPointOnCircleGivenAngle(this._position, this._radius, this._endAngle);
+        return {
+            left: Math.min(Math.min(from.x, mid.x), to.x),
+            top: Math.min(Math.min(from.y, mid.y), to.y),
+            right: Math.max(Math.max(from.x, mid.x), to.x),
+            bottom: Math.max(Math.max(from.y, mid.y), to.y)
+        }
     }
 
     setStart(angle) {
@@ -168,9 +189,9 @@ export class Circle extends Shape {
     getBounds() {
         return {
             left: this._position.x - this._radius,
-            top: this._position.y + this._radius,
+            top: this._position.y - this._radius,
             right: this._position.x + this._radius,
-            bottom: this._position.y - this._radius
+            bottom: this._position.y + this._radius
         }
     }
 
@@ -207,9 +228,9 @@ export class Triangle extends Shape {
     getBounds() {
         return {
             left: Math.min(this._vertices.top.x, this._vertices.left.x, this._vertices.right.x),
-            top: Math.max(this._vertices.top.y, this._vertices.left.y, this._vertices.right.y),
+            top: Math.min(this._vertices.top.y, this._vertices.left.y, this._vertices.right.y),
             right: Math.max(this._vertices.top.x, this._vertices.left.x, this._vertices.right.x),
-            bottom: Math.min(this._vertices.top.y, this._vertices.left.y, this._vertices.right.y)
+            bottom: Math.max(this._vertices.top.y, this._vertices.left.y, this._vertices.right.y)
         }
     }
 

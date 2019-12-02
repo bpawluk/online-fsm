@@ -3,12 +3,12 @@
 export class Canvas {
     constructor(sandbox, config) {
         // Provides:
+        this.SET_TRANSFORM = 'canvas-set-transform';
         this.CLEAR_CANVAS = 'canvas-clear';
         this.DRAW_ON_CANVAS = 'canvas-draw';
         this.REDRAW_CANVAS = 'canvas-redraw';
         this.CANVAS_CLEARED_EVENT = 'canvas-cleared';
         this.CANVAS_DRAWN_EVENT = 'canvas-drawn';
-        //this.CANVAS_SIZE_CHANGING = 'canvas-size-changing';
         this.CANVAS_RESIZED_EVENT = 'canvas-resized';
 
         // Depends on:
@@ -25,6 +25,7 @@ export class Canvas {
         this._isInteractive = config && config.isInteractive !== undefined ? config.isInteractive : false;
         this._size = config.size || { width: 'auto', height: 'auto' }
         this._minSize = config.minSize || { width: 0, height: 0 };
+        this._transform = config.transform;
         this._sandbox = sandbox;
         this._canvas;
         this._context;
@@ -45,6 +46,7 @@ export class Canvas {
             this._sandbox.registerMessageReceiver(this.CLEAR_CANVAS, this.clear.bind(this));
             this._sandbox.registerMessageReceiver(this.DRAW_ON_CANVAS, this.draw.bind(this));
             this._sandbox.registerMessageReceiver(this.REDRAW_CANVAS, this.redraw.bind(this));
+            this._sandbox.registerMessageReceiver(this.SET_TRANSFORM, this.setTransform.bind(this));
             this.isRunning = true;
         }
     }
@@ -65,6 +67,7 @@ export class Canvas {
             this._sandbox.sendMessage(this.ADD_MOUSE_LISTENERS, this._canvas);
         }
         this.clear();
+        this._sandbox.raiseEvent(this.CANVAS_RESIZED_EVENT, { width: width, height: height });
     }
 
     clear() {
@@ -76,6 +79,8 @@ export class Canvas {
     }
 
     draw(drawables) {
+        this._context.save();
+        if (this._transform) this._transform(this._context);
         if (drawables instanceof Array) {
             for (let i = 0, len = drawables.length; i < len; i++) {
                 drawables[i].draw(this._context);
@@ -83,6 +88,7 @@ export class Canvas {
         } else {
             drawables.draw(this._context);
         }
+        this._context.restore();
         this._sandbox.raiseEvent(this.CANVAS_DRAWN_EVENT, { canvas: this._canvas, drawables: drawables });
     }
 
@@ -96,6 +102,10 @@ export class Canvas {
         this._canvas.height = size.height;
         this.clear();
         this._sandbox.raiseEvent(this.CANVAS_RESIZED_EVENT, size);
+    }
+
+    setTransform(transform) {
+        this._transform = transform;
     }
 
     stop() {

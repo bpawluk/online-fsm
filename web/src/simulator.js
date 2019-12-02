@@ -9,6 +9,7 @@ import { FSMSerializer } from './modules/fsm-serializer.js';
 import { PopupManager } from './modules/popup-manager.js';
 import { FSMLoader } from './modules/fsm-loader.js';
 import { FSMSimulator } from './modules/fsm-simulator.js';
+import { WorkspaceScaler } from './modules/workspace-scaler.js';
 
 (function (domEntrypoint) {
     const core = new Core();
@@ -16,6 +17,7 @@ import { FSMSimulator } from './modules/fsm-simulator.js';
     core.addModule(DomManager, 'dom-manager', { entrypoint: domEntrypoint });
     core.addModule(Interaction, 'interaction');
     core.addModule(Workspace, 'workspace');
+    core.addModule(WorkspaceScaler, 'workspace-scaler');
     core.addModule(PopupManager, 'popup-manager')
     core.addModule(FSMLoader, 'fsm-loader');
     core.addModule(FSMCacheManager, 'fsm-cache-manager');

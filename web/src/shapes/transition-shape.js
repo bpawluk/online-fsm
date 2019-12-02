@@ -47,6 +47,10 @@ export class Transition extends Shape {
         this._textBox.setText(text);
     }
 
+    getBounds() {
+        return this._arrow.getBounds();
+    }
+
     getText() {
         return this._textBox._text;
     }
