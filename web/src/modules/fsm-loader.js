@@ -51,7 +51,7 @@ export class FSMLoader {
         this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'save', listener: this._onSave });
         this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'load', listener: this._onLoad });
         this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'run', listener: this._onRun });
-        this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'edit', listener: this._onEdit });
+        this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'design', listener: this._onEdit });
         this._sandbox.sendMessage(this.LOAD_CACHE);
     }
 
@@ -73,7 +73,7 @@ export class FSMLoader {
         this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'save', listener: this._onSave });
         this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'load', listener: this._onLoad });
         this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'run', listener: this._onRun });
-        this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'edit', listener: this._onEdit });
+        this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'design', listener: this._onEdit });
     }
 
     _clearDesigner() {

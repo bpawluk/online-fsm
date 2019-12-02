@@ -137,6 +137,15 @@ export class FSMSimulator {
         this._sandbox.sendMessage(this.REMOVE_BUTTON_LISTENER, { id: 'forward', listener: this._onForward });
     }
 
+    _printAlphabet() {
+        let string = '';
+        if (this._alphabet.size > 0) {
+            this._alphabet.forEach(element => string += element + ', ');
+            string = string.substr(0, string.length - 2);
+        }
+        return string;
+    }
+
     _resetData() {
         this._input = null;
         this._entry = null;
@@ -205,7 +214,7 @@ export class FSMSimulator {
         };
         let cancel = () => this._sandbox.sendMessage(this.HIDE_POPUP);
         this._sandbox.sendMessage(this.SHOW_POPUP, {
-            message: 'Please enter input for the automaton.\nAny symbols outside of the alphabet { ' + this._alphabet + ' } will be ignored.',
+            message: 'Please enter input for the automaton.\nAny symbols outside of the alphabet { ' + this._printAlphabet() + ' } will be ignored.',
             input: [{ name: 'fsm-user-input', label: 'Word to process' }],
             buttons: [{ text: 'Save', onClick: save }, { text: 'Cancel', onClick: cancel }],
             onEscape: cancel,
