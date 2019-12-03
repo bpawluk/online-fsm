@@ -14,7 +14,8 @@ namespace OnlineFSM.Controllers
             return View();
         }
 
-        public IActionResult Simulator()
+        [HttpGet("[controller]/[action]/{id?}", Name = "GetAutomata")]
+        public IActionResult Simulator(string id)
         {
             return View();
         }

@@ -62,6 +62,7 @@ export class PopupManager {
                 ipt.type = 'text';
                 ipt.id = input.name;
                 ipt.name = input.name;
+                ipt.value = input.value || '';
                 ipt.style['display'] = 'block';
                 ipt.style['width'] = '100%';
                 ipt.style['margin-bottom'] = '5px';

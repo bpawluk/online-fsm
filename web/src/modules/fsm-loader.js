@@ -8,12 +8,15 @@ export class FSMLoader {
         // Provides:
 
         // Depends on:
+        this.FORCE_RESCALE = 'workspace-force-rescale';
         this.SAVE_CACHE = 'fsm-save-cache';
         this.LOAD_CACHE = 'fsm-load-cache';
         this.CLEAR_CACHE = 'fsm-clear-cache';
         this.SELECT_ITEM = 'workspace-select-item';
         this.GET_ITEMS = 'workspace-get-items';
         this.REMOVE_ITEM = 'workspace-remove-item';
+        this.SERIALIZE_FSM = 'fsm-serialize';
+        this.DESERIALIZE_FSM = 'fsm-deserialize';
         this.REFRESH_WORKSPACE = 'workspace-refresh';
         this.SHOW_POPUP = 'popup-show';
         this.HIDE_POPUP = 'popup-hide';
@@ -52,7 +55,7 @@ export class FSMLoader {
         this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'load', listener: this._onLoad });
         this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'run', listener: this._onRun });
         this._sandbox.sendMessage(this.ADD_BUTTON_LISTENER, { id: 'design', listener: this._onEdit });
-        this._sandbox.sendMessage(this.LOAD_CACHE);
+        this._loadSimulator();
     }
 
     stop() {
@@ -98,9 +101,7 @@ export class FSMLoader {
                 window.location.href = '/App/Designer';
             }
         };
-        let cancel = () => {
-            this._sandbox.sendMessage(this.HIDE_POPUP)
-        };
+        let cancel = () => this._sandbox.sendMessage(this.HIDE_POPUP);
         this._sandbox.sendMessage(this.SHOW_POPUP, {
             message: 'This will delete all unsaved progress.\nAre you sure?',
             buttons: [{ text: 'Confirm', onClick: confirm }, { text: 'Cancel', onClick: cancel }],
@@ -109,7 +110,17 @@ export class FSMLoader {
     }
 
     _onSaveClicked() {
-
+        this._unfocusWorkspace();
+        let image = () => this._saveOnline();
+        let offline = () => this._saveOnline();
+        let online = () => this._saveOnline();
+        let cancel = () => this._sandbox.sendMessage(this.HIDE_POPUP);
+        this._sandbox.sendMessage(this.SHOW_POPUP, {
+            message: 'Please choose saving method',
+            buttons: [{ text: 'Image', onClick: image }, { text: 'Local File', onClick: offline },
+            { text: 'Generate URL', onClick: online }, { text: 'Cancel', onClick: cancel }],
+            onEscape: cancel
+        });
     }
 
     _onLoadClicked() {
@@ -123,6 +134,60 @@ export class FSMLoader {
 
     _onEditClicked() {
         window.location.href = '/App/Designer';
+    }
+
+    _loadSimulator() {
+        if (/Simulator\/\S{24}$/.test(window.location.pathname)) {
+            this._sandbox.sendMessage(this.SHOW_POPUP, { message: 'Loading... Please wait' });
+            const xhr = new XMLHttpRequest();
+            const loc = window.location.pathname.split('/');
+            const url = window.location.origin + "/api/fsm/" + loc[loc.length - 1];
+            xhr.open("GET", url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        this._sandbox.sendMessage(this.DESERIALIZE_FSM, xhr.responseText);
+                        this._sandbox.sendMessage(this.FORCE_RESCALE);
+                        this._sandbox.sendMessage(this.SAVE_CACHE);
+                    }
+                    this._sandbox.sendMessage(this.HIDE_POPUP);
+                }
+            };
+            xhr.send();
+        } else {
+            this._sandbox.sendMessage(this.LOAD_CACHE);
+        }
+
+    }
+
+    _saveOnline() {
+        let cancel = () => this._sandbox.sendMessage(this.HIDE_POPUP);
+        this._sandbox.sendMessage(this.SHOW_POPUP, {
+            message: 'Saving... Please wait',
+            buttons: [{ text: 'No, thanks', onClick: cancel }],
+            onEscape: cancel
+        });
+        const xhr = new XMLHttpRequest();
+        const url = window.location.origin + "/api/fsm";
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState === 4) {
+                let cancel = () => this._sandbox.sendMessage(this.HIDE_POPUP);
+                let message = 'Something went wrong...';
+                let buttons = [{ text: 'OK', onClick: cancel }]
+                let input = [];
+                if (xhr.status === 201) {
+                    message = 'Saving succesful!'
+                    buttons.push({ text: 'Go to', onClick: () => window.open(xhr.getResponseHeader("Location"), '_blank') });
+                    input.push({ name: 'fsm-url', label: 'URL', value: xhr.getResponseHeader("Location")});
+                }
+                this._sandbox.sendMessage(this.SHOW_POPUP, { message: message, buttons: buttons, input: input, onEscape: cancel });
+            }
+        };
+        var data = this._sandbox.sendMessage(this.SERIALIZE_FSM);
+        xhr.send(data);
     }
 
     _unfocusWorkspace() {

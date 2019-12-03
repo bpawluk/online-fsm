@@ -4,6 +4,7 @@ export class Canvas {
     constructor(sandbox, config) {
         // Provides:
         this.SET_TRANSFORM = 'canvas-set-transform';
+        this.GET_SIZE = 'canvas-get-size';
         this.CLEAR_CANVAS = 'canvas-clear';
         this.DRAW_ON_CANVAS = 'canvas-draw';
         this.REDRAW_CANVAS = 'canvas-redraw';
@@ -47,6 +48,7 @@ export class Canvas {
             this._sandbox.registerMessageReceiver(this.DRAW_ON_CANVAS, this.draw.bind(this));
             this._sandbox.registerMessageReceiver(this.REDRAW_CANVAS, this.redraw.bind(this));
             this._sandbox.registerMessageReceiver(this.SET_TRANSFORM, this.setTransform.bind(this));
+            this._sandbox.registerMessageReceiver(this.GET_SIZE, this.getSize.bind(this));
             this.isRunning = true;
         }
     }
@@ -97,6 +99,13 @@ export class Canvas {
         this.draw(drawables);
     }
 
+    getSize() {
+        return {
+            width: this._canvas.width,
+            height: this._canvas.height
+        }
+    }
+
     resize(size) {
         this._canvas.width = size.width;
         this._canvas.height = size.height;
@@ -114,6 +123,8 @@ export class Canvas {
             this._sandbox.unregisterMessageReceiver(this.CLEAR_CANVAS);
             this._sandbox.unregisterMessageReceiver(this.DRAW_ON_CANVAS);
             this._sandbox.unregisterMessageReceiver(this.REDRAW_CANVAS);
+            this._sandbox.unregisterMessageReceiver(this.SET_TRANSFORM);
+            this._sandbox.unregisterMessageReceiver(this.GET_SIZE);
         }
     }
 
