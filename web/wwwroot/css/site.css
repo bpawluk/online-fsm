@@ -24,6 +24,7 @@ body {
     overflow: hidden;
     position: fixed; 
     top: 0; 
+    z-index: 100;
 }
 
 .navbar a {
@@ -74,3 +75,8 @@ button p {
         margin-right: 0;
     }
 }
+
+button::-moz-focus-inner {
+    border: 0;
+}
+    

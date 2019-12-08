@@ -1,2 +1,51 @@
-<a asp-controller="App" asp-action="Designer">DESIGNER</a>
-<a asp-controller="App" asp-action="Simulator">SIMULATOR</a>
+<div class="CTA">
+    <div class="CTA-container">
+        <p class="CTA-title">WELCOME TO FSM SIMULATOR APP</p>
+        <p class="CTA-subtitle">This application let's you create your own nondeterministic finite state automaton and see how it works by following an interactive visualisation.</p>
+        <p class="CTA-subtitle">If it's your first time here we recommend you to check out our quickstart guide. You can also dive straight into the app.</p>
+        <div class="CTA-buttons">
+            <button class="CTA-button" onclick="scrollToGuide()">QUICKSTART GUIDE</button>
+            <button class="CTA-button" onclick="goToApp()">START THE APP</button>
+        </div>
+    </div>
+</div>
+<div class="guide">
+    <div class="guide-item">
+        <img class="guide-item-image" src="~/images/01.png">
+        <div class="guide-item-header">
+            <div class="guide-item-number">1</div>
+            <p class="guide-item-title">Add states</p>
+        </div>  
+        <p class="guide-item-text">Start building your automaton by <b>adding states</b>. You can do this by <b>double clicking the workspace</b> or pressing the <b>add button</b>. Every automaton needs an <b>initial state</b> in which it starts its execution. You can change the initial state by <b>clicking a state while pressing shift key</b> or selecting a state and pressing the <b>initial button</b>. To accept a word, an automaton needs to finish its execution in an <b>accepting state</b>. You can make a state into an accepting one by <b>double clicking it</b> or selecting it and then pressing the <b>accept button</b>. If you wish, you can also <b>rename your states</b>. You achieve this by selecting a state and then pressing <b>enter</b> on your keyboard or pressing the <b>edit button</b>. You can <b>move states</b> freely by <b>dragging</b> them with your mouse or touchscreen.</p>
+    </div>
+    <div class="guide-item">
+        <img class="guide-item-image" src="~/images/02.png">
+        <div class="guide-item-header">
+            <div class="guide-item-number">2</div>
+            <p class="guide-item-title">Define transitions</p>
+        </div> 
+        <p class="guide-item-text">After you defined your states, the next step is to <b>add some transitions</b>. A transition can connect two states or be a self transition. You define both of them the same way. To begin <b>adding a transition</b> you can either <b>click a state while holding down control key</b> or select a state and then press the <b>connect button</b>. To end defining the transition you simply click on the state you want to set as an endpoint. A condition for a newly added transition is always set to a dollar sign ($) which stands for an empty word. You can <b>change the condition</b> by selecting a transition and then <b>pressing enter</b> or the <b>edit button</b>. If you wish you can also <b>reposition</b> your transitions by simply <b>dragging</b> them with your mouse or touchscreen.</p>
+    </div>
+    <div class="guide-item">
+        <img class="guide-item-image" src="~/images/03.png">
+        <div class="guide-item-header">
+            <div class="guide-item-number">3</div>
+            <p class="guide-item-title">Run a simulation</p>
+        </div> 
+        <p class="guide-item-text">The last step is to run a simulation. Press the <b>run button</b> to navigate to the simulation view. Then you need to <b>specify an input string</b> by pressing the <b>set input button</b>. The app will filter all characters outside of your automaton's alphabet. The simulation starts after you provide a valid input. You can control the simulation with the bottom panel buttons. The app will highlight current input character and all currently active states. You can read the next character, go back, restart the simulation and instantly read all characters to see the simulation result.</p>
+    </div>
+</div>
+@section Styles {
+<link href="~/css/intro.css" rel="stylesheet" type="text/css">
+}
+@section Scripts{
+    <script> 
+        var scrollToGuide = function() {
+            document.querySelector('.guide').scrollIntoView({ behavior: 'smooth'});
+        }
+
+        var goToApp = function() {
+            window.location.href = '/App/Designer';
+        }
+    </script> 
+}

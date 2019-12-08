@@ -1,0 +1,146 @@
+.CTA {
+    background-color: #333333;
+    min-height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.CTA-container{
+    width: 100%;
+}
+
+.CTA-title {
+    width: 100%;
+    padding: 10px 10px 0px 10px;
+    text-align: center;
+    color: #FFFFFF;
+    font-size: 2em;
+}
+
+.CTA-subtitle {
+    width: 100%;
+    padding: 10px 50px 0px 50px;
+    text-align: center;
+    color: #FFFFFF;
+    font-size: 1.5em;
+}
+
+.CTA-buttons {
+    width: 100%;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.CTA-button {
+    min-width: 150px;
+    min-height: 50px;
+    background-color: transparent;
+    border-color: white;
+    color: white;
+    border-width: 5px;
+    border-style: solid;
+    font-size: 1.1em;
+    padding: 10px;
+    margin: 0px 10px;
+}
+
+.CTA-button:hover {
+    background-color: white;
+    color: #333333;
+}
+
+.guide {
+    height: 300px;
+    width: 100%;
+}
+
+.guide-item {
+    width: 100%;
+    padding: 0 10px;
+    margin: 10px 0px 20px 0px;
+    min-height: 250px;
+}
+
+.guide-item-image {
+    width: 400px;
+    max-width: 50%;
+    float: left;
+    margin-right: 10px;
+    border-width: 1px;
+    border-color: #333333;
+    border-style: solid;
+    box-sizing: content-box;
+}
+
+.guide-item-header {
+    margin-bottom: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.guide-item-number {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    padding: 2px;
+    background: #fff;
+    border: 2px solid #333333;
+    color: #333333;
+    text-align: center;
+    display: inline-block;
+    font-size: 24px;
+    vertical-align: top;
+}
+
+.guide-item-title {
+    font: 32px Arial, sans-serif;
+    display: inline-block;
+    color: #333333;
+    margin-left: 5px;
+}
+
+.guide-item-text {
+    color: #333333;
+    box-sizing: content-box;
+    min-width: 400px;
+    padding: 0 10px;
+    text-align: justify;
+}
+
+@media (max-width: 600px) {
+    .CTA-title {
+        font-size: 1.5em;
+    }
+    
+    .CTA-subtitle {
+        font-size: 1.2em;
+        text-align: justify;
+    }
+    
+    .CTA-button {
+        min-width: 100px;
+        min-height: 35px;
+        font-size: 0.9em;
+        padding: 5px;
+        border-width: 3px;
+    } 
+
+    .guide-item {
+        text-align: center;
+        max-width: 100%;
+    }
+
+    .guide-item-text {
+        max-width: 100%;
+        min-width: 0;
+        margin-bottom: 20px;
+    }
+
+    .guide-item-image {
+        float: none;
+        max-width: 100%;
+        margin-bottom: 10px;
+    }
+}
