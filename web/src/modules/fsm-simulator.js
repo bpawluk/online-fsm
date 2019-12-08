@@ -62,7 +62,9 @@ export class FSMSimulator {
         this._currentPosition = 0;
         this._currentStates.forEach(state => state.setActive(false));
         this._currentStates = [];
-        this._activateState(this._entry);
+        if (this._entry) {
+            this._activateState(this._entry);
+        }
         this._refreshInput();
         this._refreshMessage();
         this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
@@ -205,6 +207,9 @@ export class FSMSimulator {
 
     _editInputString() {
         let save = () => {
+            if (!this._entry) {
+                this._loadData();
+            }
             let result = this._sandbox.sendMessage(this.HIDE_POPUP);
             this._setUserInput(result.find((e) => e.name === 'fsm-user-input').value);
         };
@@ -254,15 +259,14 @@ export class FSMSimulator {
     _refreshMessage() {
         if (this._input === null || this._input.length <= 0) {
             this._messageContainer.innerHTML = 'Please enter input string to run the simulation.';
-
         } else {
-            if(this._currentStates.length === 0){
+            if (this._currentStates.length === 0) {
                 this._messageContainer.innerHTML = 'No matching transitions. Input rejected';
             }
             else if (this._currentPosition <= 0) {
                 this._messageContainer.innerHTML = 'Use bottom panel to control the simulation.';
             } else if (this._currentPosition < this._input.length) {
-                this._messageContainer.innerHTML = '[' + this._input.charAt(this._currentPosition-1) + '] symbol has been read.';
+                this._messageContainer.innerHTML = '[' + this._input.charAt(this._currentPosition - 1) + '] symbol has been read.';
             } else {
                 const accepted = !!this._currentStates.find((state) => state.isAccepting);
                 this._messageContainer.innerText = 'Processing completed. Input ' + (accepted ? 'accepted!' : 'rejected!');
