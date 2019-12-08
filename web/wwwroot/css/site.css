@@ -34,7 +34,6 @@ body {
     margin: 5px 10px;
     width: 30px;
     height: 30px;
-    background-color: azure;
     vertical-align: middle;
 }
 
@@ -48,4 +47,30 @@ body {
 .content {
     height: 100%;
     width: 100%;
+}
+
+
+.material-icons {
+    line-height: 15px;
+    font-size: 21px;
+    vertical-align: text-top;
+    margin-right: 5px;
+}
+
+button p {
+    line-height: 18px;
+}
+
+.inline-block {
+    display: inline-block;
+}
+
+@media (max-width: 600px) {
+    .desktop-only {
+        display: none;
+    }
+
+    .material-icons {
+        margin-right: 0;
+    }
 }

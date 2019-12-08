@@ -8,6 +8,8 @@ export class FSMSimulator {
         // Provides:
 
         // Depends on:
+        this.SET_INPUT_PRESENTER = 'input-presenter-set';
+        this.HIGHLIGHT_INPUT_PRESENTER = 'input-presenter-highlight';
         this.LOAD_CACHE = 'fsm-load-cache';
         this.CLEAR_CACHE = 'fsm-clear-cache';
         this.SELECT_ITEM = 'workspace-select-item';
@@ -62,6 +64,7 @@ export class FSMSimulator {
         this._currentStates = [];
         this._activateState(this._entry);
         this._refreshInput();
+        this._refreshMessage();
         this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
     }
 
@@ -90,13 +93,10 @@ export class FSMSimulator {
             }
 
             this._currentPosition = nextPosition;
-            this._refreshInput();
             nextStates.forEach(state => this._activateState(state));
+            this._refreshMessage();
+            this._refreshInput();
             this._sandbox.sendMessage(this.REFRESH_WORKSPACE);
-
-            if (this._currentPosition >= this._input.length || this._currentStates.length === 0) {
-                this._endReached(!!this._currentStates.find((state) => state.isAccepting));
-            }
         }
     }
 
@@ -203,10 +203,6 @@ export class FSMSimulator {
         }
     }
 
-    _endReached(accepted) {
-        this._messageContainer.innerText = 'Processing completed. Input ' + (accepted ? 'accepted!' : 'rejected!');
-    }
-
     _editInputString() {
         let save = () => {
             let result = this._sandbox.sendMessage(this.HIDE_POPUP);
@@ -231,21 +227,14 @@ export class FSMSimulator {
             }
         }
         this._input = newInput;
+        this._sandbox.sendMessage(this.SET_INPUT_PRESENTER, newInput);
         this.backToStart();
         this._refreshControls();
+        this._refreshMessage();
     }
 
     _refreshInput() {
-        if (this._currentPosition >= 0 && this._currentPosition < this._input.length) {
-            this._inputContainer.innerHTML =
-                this._input.substring(0, this._currentPosition)
-                + '<span class="current-input">'
-                + this._input.substring(this._currentPosition, this._currentPosition + 1)
-                + '</span>'
-                + this._input.substring(this._currentPosition + 1, this._input.length);
-        } else {
-            this._inputContainer.innerHTML = this._input;
-        }
+        this._sandbox.sendMessage(this.HIGHLIGHT_INPUT_PRESENTER, this._currentPosition);
     }
 
     _refreshControls() {
@@ -254,13 +243,30 @@ export class FSMSimulator {
             this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'start', disabled: false });
             this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'end', disabled: false });
             this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'forward', disabled: false });
-            this._messageContainer.innerHTML = 'Use bottom panel to control the simulation.';
         } else {
             this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'back', disabled: true });
             this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'start', disabled: true });
             this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'end', disabled: true });
             this._sandbox.sendMessage(this.SET_CONTROL_DISABLED, { id: 'forward', disabled: true });
+        }
+    }
+
+    _refreshMessage() {
+        if (this._input === null || this._input.length <= 0) {
             this._messageContainer.innerHTML = 'Please enter input string to run the simulation.';
+
+        } else {
+            if(this._currentStates.length === 0){
+                this._messageContainer.innerHTML = 'No matching transitions. Input rejected';
+            }
+            else if (this._currentPosition <= 0) {
+                this._messageContainer.innerHTML = 'Use bottom panel to control the simulation.';
+            } else if (this._currentPosition < this._input.length) {
+                this._messageContainer.innerHTML = '[' + this._input.charAt(this._currentPosition-1) + '] symbol has been read.';
+            } else {
+                const accepted = !!this._currentStates.find((state) => state.isAccepting);
+                this._messageContainer.innerText = 'Processing completed. Input ' + (accepted ? 'accepted!' : 'rejected!');
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ export class PopupManager {
         // Depends on:
         this.ADD_KEY_LISTENER = 'add-key-listener';
         this.REMOVE_KEY_LISTENER = 'remove-key-listener';
+        this.REMOVE_CHILDREN = 'dom-remove-children';
         this.APP_INIT_EVENT = 'app-init';
 
         this.isInit = false;
@@ -140,8 +141,7 @@ export class PopupManager {
     cleanUp() { }
 
     _removeChildren(element) {
-        let children = Array.prototype.slice.call(element.childNodes);
-        children.forEach(child => child.parentNode.removeChild(child));
+        this._sandbox.sendMessage(this.REMOVE_CHILDREN, element);
     }
 
     _createPopupContainer() {

@@ -10,6 +10,7 @@ export class DomManager {
         this.GET_ELEMENTS_BY_TAG = 'get-element-by-tag';
         this.SET_CONTROL_DISABLED = 'disable-control';
         this.GET_APP_SIZE = 'get-app-size';
+        this.REMOVE_CHILDREN = 'dom-remove-children';
         this.APP_RESIZED_EVENT = 'app-resized';
 
         // Depends on:
@@ -40,6 +41,7 @@ export class DomManager {
             this._sandbox.registerMessageReceiver(this.GET_ELEMENTS_BY_TAG, this.getElementsByTag);
             this._sandbox.registerMessageReceiver(this.GET_APP_SIZE, this.getAppSize.bind(this));
             this._sandbox.registerMessageReceiver(this.SET_CONTROL_DISABLED, this.setControlDisabled.bind(this));
+            this._sandbox.registerMessageReceiver(this.REMOVE_CHILDREN, this.removeChildren.bind(this));
             window.addEventListener('resize', this._windowResizedBind)
             this.isRunning = true;
         }
@@ -65,7 +67,7 @@ export class DomManager {
         }
 
         if (config.rawContent) {
-            // to implement
+            elementToAppend.innerHTML = config.rawContent;
             config.rawContent = null;
         } else if (config.domContent) {
             // to implement
@@ -78,7 +80,8 @@ export class DomManager {
             }
         });
 
-        this._outerElement.appendChild(elementToAppend);
+        let container = config.container || this._outerElement;
+        container.appendChild(elementToAppend);
         return elementToAppend;
     }
 
@@ -110,6 +113,11 @@ export class DomManager {
         }
     }
 
+    removeChildren(element) {
+        let children = Array.prototype.slice.call(element.childNodes);
+        children.forEach(child => child.parentNode.removeChild(child));
+    }
+
     stop() {
         if (this.isRunning) {
             this.isRunning = false;
@@ -119,6 +127,7 @@ export class DomManager {
             this._sandbox.unregisterMessageReceiver(this.GET_ELEMENTS_BY_TAG);
             this._sandbox.unregisterMessageReceiver(this.GET_APP_SIZE);
             this._sandbox.unregisterMessageReceiver(this.SET_CONTROL_DISABLED);
+            this._sandbox.unregisterMessageReceiver(this.REMOVE_CHILDREN);
         }
     }
 

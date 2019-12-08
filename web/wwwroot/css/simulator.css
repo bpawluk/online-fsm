@@ -1,7 +1,11 @@
 .workspace-wrapper {
-    padding-bottom: 80px;
+    padding-bottom: 110px;
     width: 100%; 
     height: 100%; 
+}
+
+.message-wrapper {
+    height: 30px;
 }
 
 #workspace-message {
@@ -21,6 +25,39 @@
     line-height: 0px;
 }
 
+#input-wrapper {
+    height: 45px;
+    text-align: center;
+    overflow: auto;
+    white-space: nowrap;
+    position: absolute;
+    bottom: 40px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.input-symbol {
+    width: 30px;
+    display: inline-block;
+    text-align: center;
+    border-style: solid;
+    border-color: #333333;
+    border-width: 1px;
+    margin: 2.5px;
+    font-size: 20px;
+}
+
+.selected {
+    background: #B2DFEE;
+}
+
+.read {
+    background: #555555;
+    color: #EEEEEE;
+}
+
 .workspace-footer {
     position: absolute;
     background-image: linear-gradient(to bottom, white, #eeeeee);
@@ -29,28 +66,19 @@
     border-color: #cdcdcd;
     bottom: 0;
     width: 100%;
-    height: 80px;
+    height: 40px;
     text-align: center;
 }
 
 .dock {
-    height: 50%;
+    height: 100%;
+    display:inline-block;
 }
 
 .dock-item {
     height: 30px;
     margin: 5px;
     padding: 5px;
-}
-
-#input-string {
-    min-width: 100px;
-    display: inline-block;
-    max-width: 80%;
-}
-
-.current-input {
-    background-color:#B2DFEE;
 }
 
 .top-panel {

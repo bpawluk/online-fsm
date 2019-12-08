@@ -1,17 +1,14 @@
 <div class="workspace-wrapper">
     <div class="message-wrapper"><p id="workspace-message"></p></div>
     <div id="workspace"></div>
+    <div id="input-wrapper"></div>
     <div class="workspace-footer">
         <div class="dock">
-            <label class="input-label">Input:</label>
-            <span id="input-string"></span>
-            <button id="restart" class="dock-item">Set input</button>
-        </div>
-        <div class="dock">
-            <button id="start" class="dock-item">Reset</button>
-            <button id="back" class="dock-item">Prev</button>
-            <button id="forward" class="dock-item">Next</button>
-            <button id="end" class="dock-item">Read all</button>
+            <button id="start" class="dock-item"><i class="material-icons">fast_rewind</i><p class="desktop-only inline-block">Reset</p></button>
+            <button id="back" class="dock-item"><i class="material-icons">skip_previous</i><p class="desktop-only inline-block">Prev</p></button>
+            <button id="restart" class="dock-item"><i class="material-icons">input</i><p class="desktop-only inline-block">Set input</p></button>
+            <button id="forward" class="dock-item"><i class="material-icons">skip_next</i><p class="desktop-only inline-block">Next</p></button>
+            <button id="end" class="dock-item"><i class="material-icons">fast_forward</i><p class="desktop-only inline-block">Read all</p></button>
         </div>
     </div>
 </div>
@@ -41,6 +38,7 @@
     <script type="module" src="~/modules/fsm-loader.js"></script>
     <script type="module" src="~/modules/fsm-cache-manager.js"></script>
     <script type="module" src="~/modules/fsm-simulator.js"></script>
+    <script type="module" src="~/modules/input-presenter.js"></script>
     <script type="module" src="~/shapes/shape.js"></script>
     <script type="module" src="~/shapes/basic-shapes.js"></script>
     <script type="module" src="~/shapes/state-shape.js"></script>
