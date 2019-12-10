@@ -13,6 +13,7 @@ import { PopupManager } from './modules/popup-manager.js';
 import { FSMStateManager } from './modules/fsm-state-manager.js';
 import { FSMTransitionManager } from './modules/fsm-transition-manager.js';
 import { FSMLoader } from './modules/fsm-loader.js';
+import { WorkspaceScaler } from './modules/workspace-scaler.js';
 
 (function (domEntrypoint) {
     const core = new Core();
@@ -20,6 +21,7 @@ import { FSMLoader } from './modules/fsm-loader.js';
     core.addModule(DomManager, 'dom-manager', { entrypoint: domEntrypoint });
     core.addModule(Interaction, 'interaction');
     core.addModule(Workspace, 'workspace');
+    core.addModule(WorkspaceScaler, 'workspace-scaler');
     core.addModule(ItemSelector, 'item-selector');
     core.addModule(ItemDragger, 'item-dragger')
     core.addModule(Ruler, 'ruler', { distance: 15, reach: 3, visibility: true });

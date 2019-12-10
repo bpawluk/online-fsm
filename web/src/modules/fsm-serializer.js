@@ -79,11 +79,11 @@ export class FSMSerializer {
             console.log('Error parsing JSON data')
         }
 
-        if(dataRead) {
+        if (dataRead) {
             let states = [];
             let transitions = [];
             let ids = new Map();
-    
+
             if (dataRead.states instanceof Array) {
                 let lastNum = 0;
                 let entryDefined = false;
@@ -101,8 +101,11 @@ export class FSMSerializer {
                         if (state.ent) entryDefined = true;
                     }
                 });
+                if (!entryDefined && states.length > 0) {
+                    states[0].isEntry = true;
+                }
             }
-    
+
             if (dataRead.transitions instanceof Array) {
                 dataRead.transitions.forEach(trans => {
                     let from = ids.get(trans.frm);

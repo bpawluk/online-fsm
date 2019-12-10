@@ -8,6 +8,7 @@ export class FSMLoader {
         // Provides:
 
         // Depends on:
+        this.GET_BOUNDS = 'workspace-scaler-get-bound';
         this.FORCE_RESCALE = 'workspace-force-rescale';
         this.SAVE_CACHE = 'fsm-save-cache';
         this.LOAD_CACHE = 'fsm-load-cache';
@@ -111,8 +112,8 @@ export class FSMLoader {
 
     _onSaveClicked() {
         this._unfocusWorkspace();
-        let image = () => this._saveOnline();
-        let offline = () => this._saveOnline();
+        let image = () => this._saveImage();
+        let offline = () => this._saveOffline();
         let online = () => this._saveOnline();
         let cancel = () => this._sandbox.sendMessage(this.HIDE_POPUP);
         this._sandbox.sendMessage(this.SHOW_POPUP, {
@@ -124,7 +125,19 @@ export class FSMLoader {
     }
 
     _onLoadClicked() {
-
+        let confirm = () => {
+            const result = this._sandbox.sendMessage(this.HIDE_POPUP).find((e) => e.name === 'data').value;
+            if (result && result.length > 0) {
+                this._loadFile(result[0]);
+            }
+        };
+        let cancel = () => this._sandbox.sendMessage(this.HIDE_POPUP);
+        this._sandbox.sendMessage(this.SHOW_POPUP, {
+            message: 'Choose file to load',
+            input: [{ name: 'data', type: 'file', accept: '.json,application/json' }],
+            buttons: [{ text: 'Confirm', onClick: confirm }, { text: 'Cancel', onClick: cancel }],
+            onEscape: cancel
+        });
     }
 
     _onRunClicked() {
@@ -161,6 +174,20 @@ export class FSMLoader {
 
     }
 
+    _loadFile(file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const result = reader.result;
+            if(result && result.length > 0) {
+                this._clearDesigner();
+                this._sandbox.sendMessage(this.DESERIALIZE_FSM, result)
+                this._sandbox.sendMessage(this.FORCE_RESCALE);
+                this._sandbox.sendMessage(this.SAVE_CACHE);
+            }
+        };
+        reader.readAsText(file);
+    }
+
     _saveOnline() {
         let cancel = () => this._sandbox.sendMessage(this.HIDE_POPUP);
         this._sandbox.sendMessage(this.SHOW_POPUP, {
@@ -181,7 +208,7 @@ export class FSMLoader {
                 if (xhr.status === 201) {
                     message = 'Saving succesful!'
                     buttons.push({ text: 'Go to', onClick: () => window.open(xhr.getResponseHeader("Location"), '_blank') });
-                    input.push({ name: 'fsm-url', label: 'URL', value: xhr.getResponseHeader("Location")});
+                    input.push({ name: 'fsm-url', label: 'URL', value: xhr.getResponseHeader("Location") });
                 }
                 this._sandbox.sendMessage(this.SHOW_POPUP, { message: message, buttons: buttons, input: input, onEscape: cancel });
             }
@@ -190,9 +217,74 @@ export class FSMLoader {
         xhr.send(data);
     }
 
+    _saveOffline() {
+        this._sandbox.sendMessage(this.HIDE_POPUP);
+        const data = this._sandbox.sendMessage(this.SERIALIZE_FSM);
+        const blob = new Blob([data], { type: 'application/json' });
+        this._crossBrowserSave('fsm-data.json', blob);
+    }
+
+    _saveImage() {
+        const margin = 0.5;
+        const bounds = this._sandbox.sendMessage(this.GET_BOUNDS, 0);
+        if (bounds) {
+            const width = bounds.right - bounds.left;
+            const height = bounds.bottom - bounds.top;
+
+            const canvas = document.createElement('canvas');
+            canvas.style['display'] = 'none';
+            canvas.width = width + margin * width;
+            canvas.height = height + margin * height;
+            document.body.appendChild(canvas);
+
+            const context = canvas.getContext('2d');
+            context.fillStyle = '#FFFFFF'
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.translate(0.5 * margin * width - bounds.left, 0.5 * margin * height - bounds.top);
+
+            const items = this._sandbox.sendMessage(this.GET_ITEMS, (item) => item instanceof State || item instanceof Transition);
+            items.forEach(item => {
+                item.draw(context);
+            });
+
+            this._crossBrowserSave('fsm-schema.png', null, canvas);
+            document.body.removeChild(canvas);
+        } else {
+            let cancel = () => this._sandbox.sendMessage(this.HIDE_POPUP);
+            let message = 'Your workspace seems to be empty';
+            let buttons = [{ text: 'OK', onClick: cancel }]
+            this._sandbox.sendMessage(this.SHOW_POPUP, { message: message, buttons: buttons, onEscape: cancel });
+        }
+    }
+
     _unfocusWorkspace() {
         if (this._sandbox.handshake(this.SELECT_ITEM)) {
             this._sandbox.sendMessage(this.SELECT_ITEM, { item: null });
+        }
+    }
+
+    _crossBrowserSave(filename, blob, canvas) {
+        if (canvas && canvas.msToBlob) {
+            blob = canvas.msToBlob();
+        }
+
+        if (window.navigator.msSaveOrOpenBlob) {
+            window.navigator.msSaveBlob(blob, filename);
+        } else {
+            let urlObj = null;
+            if (canvas) {
+                urlObj = canvas.toDataURL();
+            } else {
+                urlObj = window.URL.createObjectURL(blob);
+            }
+
+            const elem = window.document.createElement('a');
+            elem.href = urlObj
+            elem.download = filename;
+            document.body.appendChild(elem);
+            elem.click();
+            document.body.removeChild(elem);
+            window.URL.revokeObjectURL(urlObj);
         }
     }
 }

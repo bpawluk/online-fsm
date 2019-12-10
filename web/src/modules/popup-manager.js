@@ -55,15 +55,16 @@ export class PopupManager {
             data.input.forEach(input => {
                 let label = document.createElement('label');
                 label.for = input.name;
-                label.innerText = input.label;
+                label.innerText = input.label || '';
                 label.style['display'] = 'block';
                 label.style['font-size'] = '0.8em';
                 this._popup.input.appendChild(label);
                 let ipt = document.createElement('input');
-                ipt.type = 'text';
+                ipt.type = input.type || 'text';
                 ipt.id = input.name;
                 ipt.name = input.name;
                 ipt.value = input.value || '';
+                ipt.accept = input.accept || '';
                 ipt.style['display'] = 'block';
                 ipt.style['width'] = '100%';
                 ipt.style['margin-bottom'] = '5px';
@@ -121,7 +122,13 @@ export class PopupManager {
         let data = [];
         let input = Array.prototype.slice.call(this._popup.input.getElementsByTagName('input'));
         if (input) {
-            input.forEach((ipt) => data.push({ name: ipt.name, value: ipt.value }));
+            input.forEach((ipt) => {
+                let value = ipt.value;
+                if (ipt.type === 'file') {
+                    value = ipt.files;
+                }
+                return data.push({ name: ipt.name, value: value })
+            });
         }
 
         this._removeChildren(this._popup.input);

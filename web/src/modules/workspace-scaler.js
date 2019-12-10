@@ -1,9 +1,10 @@
 'use strict'
 
 export class WorkspaceScaler {
-    constructor(sandbox) {
+    constructor(sandbox, config) {
         // Provides:
         this.FORCE_RESCALE = 'workspace-force-rescale';
+        this.GET_BOUNDS = 'workspace-scaler-get-bound';
 
         // Depends on:
         this.SET_TRANSFORM = 'canvas-set-transform';
@@ -13,7 +14,10 @@ export class WorkspaceScaler {
         this.APP_INIT_EVENT = 'app-init';
         this.CANVAS_RESIZED_EVENT = 'canvas-resized';
 
+        config = config || {};
+
         this._margin = 50;
+        this._scallingEnabled = !!config.autoscale;
 
         this.isInit = false;
         this.isRunning = false;
@@ -31,7 +35,10 @@ export class WorkspaceScaler {
         if (!this.isRunning) {
             this.isRunning = true;
             this._sandbox.registerMessageReceiver(this.FORCE_RESCALE, this.rescale.bind(this));
-            this._sandbox.registerListener(this.CANVAS_RESIZED_EVENT, { callback: this._onCanvasResized, thisArg: this });
+            this._sandbox.registerMessageReceiver(this.GET_BOUNDS, this.getBounds.bind(this));
+            if (this._scallingEnabled) {
+                this._sandbox.registerListener(this.CANVAS_RESIZED_EVENT, { callback: this._onCanvasResized, thisArg: this });
+            }
         }
     }
 
@@ -39,9 +46,15 @@ export class WorkspaceScaler {
         this._sandbox.unregisterListener(this.APP_INIT_EVENT, this.onAppInit);
     }
 
-    rescale(){
+    getBounds(margin) {
+        return this._getWorkspaceBounds(margin);
+    }
+
+    rescale() {
         let size = this._sandbox.sendMessage(this.GET_SIZE);
-        this._onCanvasResized(size);
+        if(this._scallingEnabled){
+            this._onCanvasResized(size);
+        }
     }
 
     stop() {
@@ -53,10 +66,11 @@ export class WorkspaceScaler {
 
     cleanUp() { }
 
-    _getWorkspaceBounds() {
+    _getWorkspaceBounds(margin) {
+        margin = margin === undefined ? this._margin : margin
         let bounds = null;
         let items = this._sandbox.sendMessage(this.GET_ITEMS, (item) => typeof item.getBounds === 'function');
-        if(items.length > 0) {
+        if (items.length > 0) {
             bounds = items.reduce(
                 (bounds, item) => {
                     const current = item.getBounds();
@@ -70,12 +84,12 @@ export class WorkspaceScaler {
                     left: Number.MAX_SAFE_INTEGER, top: Number.MAX_SAFE_INTEGER,
                     right: Number.MIN_SAFE_INTEGER, bottom: Number.MIN_SAFE_INTEGER
                 });
-            bounds.left -= this._margin;
-            bounds.top -= this._margin;
-            bounds.right += this._margin;
-            bounds.bottom += this._margin;
+            bounds.left -= margin;
+            bounds.top -= margin;
+            bounds.right += margin;
+            bounds.bottom += margin;
             return bounds;
-        }   
+        }
     }
 
     _getScale(size, width, height) {

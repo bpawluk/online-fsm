@@ -18,7 +18,7 @@ import { InputPresenter } from './modules/input-presenter.js';
     core.addModule(DomManager, 'dom-manager', { entrypoint: domEntrypoint });
     core.addModule(Interaction, 'interaction');
     core.addModule(Workspace, 'workspace');
-    core.addModule(WorkspaceScaler, 'workspace-scaler');
+    core.addModule(WorkspaceScaler, 'workspace-scaler', { autoscale: true });
     core.addModule(PopupManager, 'popup-manager')
     core.addModule(FSMLoader, 'fsm-loader');
     core.addModule(FSMCacheManager, 'fsm-cache-manager');

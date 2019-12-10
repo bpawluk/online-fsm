@@ -206,10 +206,10 @@ export class FSMSimulator {
     }
 
     _editInputString() {
+        if (!this._entry) {
+            this._loadData();
+        }
         let save = () => {
-            if (!this._entry) {
-                this._loadData();
-            }
             let result = this._sandbox.sendMessage(this.HIDE_POPUP);
             this._setUserInput(result.find((e) => e.name === 'fsm-user-input').value);
         };
