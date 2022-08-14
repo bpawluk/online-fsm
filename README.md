@@ -21,7 +21,7 @@ Create your Finite State Machine with an interactive designer
    - Run — start the simulation of your FSM
 2. Home button 
 3. Designer workspace that you can interact with using your mouse or touchscreen and keyboard to build your FSM
-   - arrange all the states and tranistions the way you want
+   - arrange all the states and transitions the way you want
    - use special shortcuts for all the actions from the bottom menu to build your FSM faster
 4. Bottom menu
    - Add — add a new FSM state
